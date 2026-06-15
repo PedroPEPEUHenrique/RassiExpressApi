@@ -8,6 +8,13 @@ import controlProdutoCategoria from "./controllers/controlProdutoCategoria.js"
 import controlUsuario from "./controllers/controlUsuario.js"
 import controlPedido from "./controllers/controlPedido.js"
 import controlUserFavorito from "./controllers/controlUserFavorito.js"
+import validate from "./middleware/validate.js"
+import { criarUsuarioSchema, loginSchema, atualizarUsuarioSchema } from "./validators/usuarioValidators.js"
+import { criarEmpresaSchema, atualizarEmpresaSchema } from "./validators/empresaValidators.js"
+import { criarProdutoSchema, atualizarProdutoSchema } from "./validators/produtoValidators.js"
+import { criarProdutoCategoriaSchema, atualizarProdutoCategoriaSchema } from "./validators/produtoCategoriaValidators.js"
+import { criarPedidoSchema, atualizarStatusSchema } from "./validators/pedidoValidators.js"
+import { criarFavoritoSchema } from "./validators/favoritoValidators.js"
 
 const router = Router();
 
@@ -18,8 +25,8 @@ router.get("/categorias", controlCategoria.Listar)
 router.get("/empresas", controlEmpresa.Listar)
 router.get("/empresas/:idEmpresa", controlEmpresa.ListarPorId)
 router.get("/empresas/categoria/:idCategoria", controlEmpresa.ListarPorCategoria)
-router.post("/empresas", controlEmpresa.Criar)
-router.put("/empresas/:idEmpresa", controlEmpresa.Atualizar)
+router.post("/empresas", validate(criarEmpresaSchema), controlEmpresa.Criar)
+router.put("/empresas/:idEmpresa", validate(atualizarEmpresaSchema), controlEmpresa.Atualizar)
 router.delete("/empresas/:idEmpresa", controlEmpresa.Deletar)
 
 // Banners
@@ -32,32 +39,32 @@ router.get("/destaques/:idEmpresa", controlDestaque.ListarPorEmpresa)
 router.get("/produtos/empresa/:idEmpresa", controlProduto.ListarPorEmpresa)
 router.get("/produtos/categoria/:idProdutoCategoria", controlProduto.ListarPorCategoria)
 router.get("/produtos/:idProduto", controlProduto.ListarPorId)
-router.post("/produtos", controlProduto.Criar)
-router.put("/produtos/:idProduto", controlProduto.Atualizar)
+router.post("/produtos", validate(criarProdutoSchema), controlProduto.Criar)
+router.put("/produtos/:idProduto", validate(atualizarProdutoSchema), controlProduto.Atualizar)
 router.delete("/produtos/:idProduto", controlProduto.Deletar)
 
 // Categorias de Produtos
 router.get("/produto-categorias/:idEmpresa", controlProdutoCategoria.ListarPorEmpresa)
-router.post("/produto-categorias", controlProdutoCategoria.Criar)
-router.put("/produto-categorias/:idProdutoCategoria", controlProdutoCategoria.Atualizar)
+router.post("/produto-categorias", validate(criarProdutoCategoriaSchema), controlProdutoCategoria.Criar)
+router.put("/produto-categorias/:idProdutoCategoria", validate(atualizarProdutoCategoriaSchema), controlProdutoCategoria.Atualizar)
 router.delete("/produto-categorias/:idProdutoCategoria", controlProdutoCategoria.Deletar)
 
 // Usuários
-router.post("/usuarios", controlUsuario.Criar)
-router.post("/usuarios/login", controlUsuario.Login)
+router.post("/usuarios", validate(criarUsuarioSchema), controlUsuario.Criar)
+router.post("/usuarios/login", validate(loginSchema), controlUsuario.Login)
 router.get("/usuarios/:idUsuario", controlUsuario.ListarPorId)
-router.put("/usuarios/:idUsuario", controlUsuario.Atualizar)
+router.put("/usuarios/:idUsuario", validate(atualizarUsuarioSchema), controlUsuario.Atualizar)
 
 // Pedidos
-router.post("/pedidos", controlPedido.Criar)
+router.post("/pedidos", validate(criarPedidoSchema), controlPedido.Criar)
 router.get("/pedidos/usuario/:idUsuario", controlPedido.ListarPorUsuario)
 router.get("/pedidos/empresa/:idEmpresa", controlPedido.ListarPorEmpresa)
 router.get("/pedidos/:idPedido", controlPedido.ListarPorId)
-router.patch("/pedidos/:idPedido/status", controlPedido.AtualizarStatus)
+router.patch("/pedidos/:idPedido/status", validate(atualizarStatusSchema), controlPedido.AtualizarStatus)
 
 // Favoritos
 router.get("/favoritos/usuario/:idUsuario", controlUserFavorito.ListarPorUsuario)
-router.post("/favoritos", controlUserFavorito.Criar)
+router.post("/favoritos", validate(criarFavoritoSchema), controlUserFavorito.Criar)
 router.delete("/favoritos/:idFavorito", controlUserFavorito.Deletar)
 
 export default router;

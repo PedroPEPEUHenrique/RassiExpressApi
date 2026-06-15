@@ -1,58 +1,34 @@
-import servPedido from "../services/servPedido.js"
+import servPedido from "../services/servPedido.js";
+import asyncHandler from "../middleware/asyncHandler.js";
 
-async function Criar(req, res) {
-    try {
-        const pedido = await servPedido.Criar(req.body);
-        res.status(201).json(pedido);
-    } catch (error) {
-        const status = error.status || 500;
-        res.status(status).json({ mensagem: error.mensagem || "Erro interno do servidor" });
-    }
-}
+const Criar = asyncHandler(async (req, res) => {
+    const pedido = await servPedido.Criar(req.body);
+    res.status(201).json(pedido);
+});
 
-async function ListarPorUsuario(req, res) {
-    try {
-        const { idUsuario } = req.params;
-        const pedidos = await servPedido.ListarPorUsuario(idUsuario);
-        res.status(200).json(pedidos);
-    } catch (error) {
-        const status = error.status || 500;
-        res.status(status).json({ mensagem: error.mensagem || "Erro interno do servidor" });
-    }
-}
+const ListarPorUsuario = asyncHandler(async (req, res) => {
+    const { idUsuario } = req.params;
+    const pedidos = await servPedido.ListarPorUsuario(idUsuario);
+    res.status(200).json(pedidos);
+});
 
-async function ListarPorEmpresa(req, res) {
-    try {
-        const { idEmpresa } = req.params;
-        const pedidos = await servPedido.ListarPorEmpresa(idEmpresa);
-        res.status(200).json(pedidos);
-    } catch (error) {
-        const status = error.status || 500;
-        res.status(status).json({ mensagem: error.mensagem || "Erro interno do servidor" });
-    }
-}
+const ListarPorEmpresa = asyncHandler(async (req, res) => {
+    const { idEmpresa } = req.params;
+    const pedidos = await servPedido.ListarPorEmpresa(idEmpresa);
+    res.status(200).json(pedidos);
+});
 
-async function ListarPorId(req, res) {
-    try {
-        const { idPedido } = req.params;
-        const pedido = await servPedido.ListarPorId(idPedido);
-        res.status(200).json(pedido);
-    } catch (error) {
-        const status = error.status || 500;
-        res.status(status).json({ mensagem: error.mensagem || "Erro interno do servidor" });
-    }
-}
+const ListarPorId = asyncHandler(async (req, res) => {
+    const { idPedido } = req.params;
+    const pedido = await servPedido.ListarPorId(idPedido);
+    res.status(200).json(pedido);
+});
 
-async function AtualizarStatus(req, res) {
-    try {
-        const { idPedido } = req.params;
-        const { status } = req.body;
-        await servPedido.AtualizarStatus(idPedido, status);
-        res.status(200).json({ mensagem: "Status atualizado com sucesso" });
-    } catch (error) {
-        const status = error.status || 500;
-        res.status(status).json({ mensagem: error.mensagem || "Erro interno do servidor" });
-    }
-}
+const AtualizarStatus = asyncHandler(async (req, res) => {
+    const { idPedido } = req.params;
+    const { status } = req.body;
+    await servPedido.AtualizarStatus(idPedido, status);
+    res.status(200).json({ mensagem: "Status atualizado com sucesso" });
+});
 
 export default { Criar, ListarPorUsuario, ListarPorEmpresa, ListarPorId, AtualizarStatus };

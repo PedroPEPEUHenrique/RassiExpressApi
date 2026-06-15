@@ -1,13 +1,9 @@
 import serviceCategoria from "../services/servCategoria.js";
+import asyncHandler from "../middleware/asyncHandler.js";
 
-async function Listar(req, res) {
-    try {
-        const categorias = await serviceCategoria.Listar();
-        res.status(200).json(categorias);
-
-    } catch (error) {
-        res.status(500).json({ error });
-    }
-}
+const Listar = asyncHandler(async (req, res) => {
+    const categorias = await serviceCategoria.Listar();
+    res.status(200).json(categorias);
+});
 
 export default { Listar };

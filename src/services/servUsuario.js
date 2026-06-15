@@ -1,3 +1,4 @@
+import jwt from 'jsonwebtoken';
 import repoUsuario from "../repositories/repoUsuario.js"
 
 async function Criar(usuario) {
@@ -19,7 +20,12 @@ async function Login(email, senha) {
     if (!usuario || usuario.senha !== senha) throw { status: 401, mensagem: "E-mail ou senha inválidos" };
 
     const { senha: _, ...usuarioSemSenha } = usuario;
-    return usuarioSemSenha;
+    const token = jwt.sign(
+        { id: usuario.id_usuario, email: usuario.email },
+        process.env.JWT_SECRET,
+        { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+    );
+    return { token, usuario: usuarioSemSenha };
 }
 
 async function ListarPorId(idUsuario) {
