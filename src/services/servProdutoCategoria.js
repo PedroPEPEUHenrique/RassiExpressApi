@@ -1,5 +1,9 @@
 import repoProdutoCategoria from "../repositories/repoProdutoCategoria.js"
 
+async function Listar() {
+    return await repoProdutoCategoria.Listar();
+}
+
 async function ListarPorEmpresa(idEmpresa) {
     return await repoProdutoCategoria.ListarPorEmpresa(idEmpresa);
 }
@@ -21,4 +25,4 @@ async function Deletar(idProdutoCategoria) {
     if (!changes) throw { status: 404, mensagem: "Categoria de produto não encontrada" };
 }
 
-export default { ListarPorEmpresa, Criar, Atualizar, Deletar };
+export default { Listar, ListarPorEmpresa, Criar, Atualizar, Deletar };

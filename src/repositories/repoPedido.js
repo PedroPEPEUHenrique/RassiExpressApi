@@ -1,5 +1,10 @@
 import { execute } from "../database/sqlite.js"
 
+async function Listar() {
+    const sql = "SELECT * FROM PEDIDO";
+    return await execute(sql);
+}
+
 async function ListarPorUsuario(idUsuario) {
     const sql = `
         SELECT p.*, e.nome AS nome_empresa, e.icone AS icone_empresa
@@ -52,4 +57,4 @@ async function AtualizarStatus(idPedido, status) {
     return result.changes;
 }
 
-export default { ListarPorUsuario, ListarPorEmpresa, ListarPorId, Criar, AtualizarStatus };
+export default { Listar, ListarPorUsuario, ListarPorEmpresa, ListarPorId, Criar, AtualizarStatus };

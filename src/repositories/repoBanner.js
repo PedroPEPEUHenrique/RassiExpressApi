@@ -5,4 +5,9 @@ async function ListarPorEmpresa(idEmpresa) {
     return await execute(sql, [idEmpresa]);
 }
 
-export default { ListarPorEmpresa };
+async function Listar() {
+    const sql = "SELECT * FROM BANNER ";
+    return await execute(sql);
+}
+
+export default { Listar, ListarPorEmpresa };

@@ -1,6 +1,10 @@
 import repoPedido from "../repositories/repoPedido.js"
 import repoItensPedido from "../repositories/repoItensPedido.js"
 
+async function Listar() {
+    return await repoPedido.Listar();
+}
+
 async function Criar(pedido) {
     if (!pedido.idEmpresa) throw { status: 400, mensagem: "Empresa é obrigatória" };
     if (!pedido.idUsuario) throw { status: 400, mensagem: "Usuário é obrigatório" };
@@ -37,4 +41,4 @@ async function AtualizarStatus(idPedido, status) {
     if (!changes) throw { status: 404, mensagem: "Pedido não encontrado" };
 }
 
-export default { Criar, ListarPorUsuario, ListarPorEmpresa, ListarPorId, AtualizarStatus };
+export default { Listar, Criar, ListarPorUsuario, ListarPorEmpresa, ListarPorId, AtualizarStatus };

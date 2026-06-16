@@ -1,6 +1,10 @@
 import jwt from 'jsonwebtoken';
 import repoUsuario from "../repositories/repoUsuario.js"
 
+async function Listar() {
+    return await repoUsuario.Listar();
+}
+
 async function Criar(usuario) {
     if (!usuario.nome) throw { status: 400, mensagem: "Nome é obrigatório" };
     if (!usuario.email) throw { status: 400, mensagem: "E-mail é obrigatório" };
@@ -40,4 +44,4 @@ async function Atualizar(idUsuario, usuario) {
     return await repoUsuario.ListarPorId(idUsuario);
 }
 
-export default { Criar, Login, ListarPorId, Atualizar };
+export default { Listar, Criar, Login, ListarPorId, Atualizar };
