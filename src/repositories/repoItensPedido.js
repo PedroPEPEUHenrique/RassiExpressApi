@@ -1,4 +1,4 @@
-import { execute } from "../database/sqlite.js"
+import { execute } from "../database/mysql.js"
 
 async function ListarPorPedido(idPedido) {
     const sql = `
@@ -16,7 +16,7 @@ async function Criar(item) {
         VALUES (?, ?, ?, ?, ?, ?)
     `;
     const params = [
-        item.idPedido, item.idProduto, item.observacao,
+        item.idPedido, item.idProduto, item.observacao ?? null,
         item.quantidade, item.vlUnitario, item.vlTotal
     ];
     const result = await execute(sql, params, "run");

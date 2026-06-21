@@ -1,0 +1,16 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: foodexpress_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: foodexpress
+    ports:
+      - "3307:3306"
+    volumes:
+      - foodexpress_data:/var/lib/mysql
+      - ./src/database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+
+volumes:
+  foodexpress_data:

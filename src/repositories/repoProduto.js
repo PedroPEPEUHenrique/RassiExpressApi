@@ -1,4 +1,4 @@
-import { execute } from "../database/sqlite.js"
+import { execute } from "../database/mysql.js"
 
 async function ListarPorEmpresa(idEmpresa) {
     const sql = "SELECT * FROM PRODUTO WHERE id_empresa = ? AND ativo = 1 ORDER BY nome";
@@ -22,7 +22,7 @@ async function Criar(produto) {
     `;
     const params = [
         produto.idEmpresa, produto.idProdutoCategoria,
-        produto.nome, produto.descricao, produto.icone, produto.valor
+        produto.nome, produto.descricao ?? null, produto.icone ?? null, produto.valor
     ];
     const result = await execute(sql, params, "run");
     return result.lastID;
@@ -35,7 +35,7 @@ async function Atualizar(idProduto, produto) {
     `;
     const params = [
         produto.idProdutoCategoria, produto.nome,
-        produto.descricao, produto.icone, produto.valor, produto.ativo, idProduto
+        produto.descricao ?? null, produto.icone ?? null, produto.valor, produto.ativo, idProduto
     ];
     const result = await execute(sql, params, "run");
     return result.changes;

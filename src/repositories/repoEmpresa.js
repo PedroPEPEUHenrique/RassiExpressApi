@@ -1,4 +1,4 @@
-import { execute } from "../database/sqlite.js"
+import { execute } from "../database/mysql.js"
 
 async function Listar() {
     const sql = "SELECT * FROM EMPRESA WHERE ativo = 1 ORDER BY nome";
@@ -24,12 +24,12 @@ async function ListarPorCategoria(idCategoria) {
 async function Criar(empresa) {
     const sql = `
         INSERT INTO EMPRESA (nome, icone, taxa_entrega, cep, endereco, numero, complemento, bairro, cidade, estado, ativo, dt_cadastro)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'))
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW())
     `;
     const params = [
-        empresa.nome, empresa.icone, empresa.taxaEntrega,
-        empresa.cep, empresa.endereco, empresa.numero,
-        empresa.complemento, empresa.bairro, empresa.cidade, empresa.estado
+        empresa.nome, empresa.icone ?? null, empresa.taxaEntrega,
+        empresa.cep ?? null, empresa.endereco ?? null, empresa.numero ?? null,
+        empresa.complemento ?? null, empresa.bairro ?? null, empresa.cidade ?? null, empresa.estado ?? null
     ];
     const result = await execute(sql, params, "run");
     return result.lastID;
@@ -42,9 +42,9 @@ async function Atualizar(idEmpresa, empresa) {
         WHERE id_empresa = ?
     `;
     const params = [
-        empresa.nome, empresa.icone, empresa.taxaEntrega,
-        empresa.cep, empresa.endereco, empresa.numero,
-        empresa.complemento, empresa.bairro, empresa.cidade, empresa.estado,
+        empresa.nome, empresa.icone ?? null, empresa.taxaEntrega,
+        empresa.cep ?? null, empresa.endereco ?? null, empresa.numero ?? null,
+        empresa.complemento ?? null, empresa.bairro ?? null, empresa.cidade ?? null, empresa.estado ?? null,
         empresa.ativo, idEmpresa
     ];
     const result = await execute(sql, params, "run");

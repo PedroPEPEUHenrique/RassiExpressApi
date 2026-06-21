@@ -1,4 +1,4 @@
-import { execute } from "../database/sqlite.js"
+import { execute } from "../database/mysql.js"
 
 async function ListarPorUsuario(idUsuario) {
     const sql = `
@@ -21,7 +21,7 @@ async function BuscarExistente(idUsuario, idEmpresa, idProduto) {
 async function Criar(favorito) {
     const sql = `
         INSERT INTO USER_FAVORITO (id_usuario, id_empresa, id_produto, dt_favoritado)
-        VALUES (?, ?, ?, datetime('now'))
+        VALUES (?, ?, ?, NOW())
     `;
     const params = [favorito.idUsuario, favorito.idEmpresa, favorito.idProduto];
     const result = await execute(sql, params, "run");

@@ -1,4 +1,4 @@
-import { execute } from "../database/sqlite.js"
+import { execute } from "../database/mysql.js"
 
 async function ListarPorEmpresa(idEmpresa) {
     const sql = "SELECT * FROM PRODUTO_CATEGORIA WHERE id_empresa = ? ORDER BY ordem";

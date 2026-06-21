@@ -1,4 +1,4 @@
-import { execute } from "../database/sqlite.js"
+import { execute } from "../database/mysql.js"
 
 async function ListarPorId(idUsuario) {
     const sql = "SELECT id_usuario, nome, email, telefone, cep, endereco, numero, complemento, bairro, cidade, estado, dt_cadastro FROM USUARIO WHERE id_usuario = ?";
@@ -13,12 +13,12 @@ async function ListarPorEmail(email) {
 async function Criar(usuario) {
     const sql = `
         INSERT INTO USUARIO (nome, email, senha, telefone, cep, endereco, numero, complemento, bairro, cidade, estado, dt_cadastro)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
     `;
     const params = [
-        usuario.nome, usuario.email, usuario.senha, usuario.telefone,
-        usuario.cep, usuario.endereco, usuario.numero, usuario.complemento,
-        usuario.bairro, usuario.cidade, usuario.estado
+        usuario.nome, usuario.email, usuario.senha, usuario.telefone ?? null,
+        usuario.cep ?? null, usuario.endereco ?? null, usuario.numero ?? null, usuario.complemento ?? null,
+        usuario.bairro ?? null, usuario.cidade ?? null, usuario.estado ?? null
     ];
     const result = await execute(sql, params, "run");
     return result.lastID;
@@ -31,9 +31,9 @@ async function Atualizar(idUsuario, usuario) {
         WHERE id_usuario = ?
     `;
     const params = [
-        usuario.nome, usuario.telefone, usuario.cep, usuario.endereco,
-        usuario.numero, usuario.complemento, usuario.bairro, usuario.cidade,
-        usuario.estado, idUsuario
+        usuario.nome ?? null, usuario.telefone ?? null, usuario.cep ?? null, usuario.endereco ?? null,
+        usuario.numero ?? null, usuario.complemento ?? null, usuario.bairro ?? null, usuario.cidade ?? null,
+        usuario.estado ?? null, idUsuario
     ];
     const result = await execute(sql, params, "run");
     return result.changes;

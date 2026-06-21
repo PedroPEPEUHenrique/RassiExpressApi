@@ -1,4 +1,4 @@
-import { execute } from "../database/sqlite.js"
+import { execute } from "../database/mysql.js"
 
 async function ListarPorUsuario(idUsuario) {
     const sql = `
@@ -36,7 +36,7 @@ async function ListarPorId(idPedido) {
 async function Criar(pedido) {
     const sql = `
         INSERT INTO PEDIDO (id_empresa, id_usuario, vl_subtotal, vl_taxa_entrega, vl_total, dt_pedido, status)
-        VALUES (?, ?, ?, ?, ?, datetime('now'), 'pendente')
+        VALUES (?, ?, ?, ?, ?, NOW(), 'pendente')
     `;
     const params = [
         pedido.idEmpresa, pedido.idUsuario,
