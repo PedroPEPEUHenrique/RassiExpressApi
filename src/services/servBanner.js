@@ -4,4 +4,8 @@ async function ListarPorEmpresa(idEmpresa) {
     return await repoBanner.ListarPorEmpresa(idEmpresa);
 }
 
-export default { ListarPorEmpresa };
+async function Listar() {
+    return await repoBanner.Listar();
+}
+
+export default { Listar, ListarPorEmpresa };

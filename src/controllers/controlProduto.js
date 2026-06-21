@@ -1,6 +1,12 @@
 import servProduto from "../services/servProduto.js";
 import asyncHandler from "../middleware/asyncHandler.js";
 
+const Listar = asyncHandler(async (req, res) => {
+    const produtos = await servProduto.Listar();
+    res.status(200).json(produtos);
+});
+
+
 const ListarPorEmpresa = asyncHandler(async (req, res) => {
     const { idEmpresa } = req.params;
     const produtos = await servProduto.ListarPorEmpresa(idEmpresa);
@@ -36,4 +42,4 @@ const Deletar = asyncHandler(async (req, res) => {
     res.status(204).send();
 });
 
-export default { ListarPorEmpresa, ListarPorCategoria, ListarPorId, Criar, Atualizar, Deletar };
+export default { Listar, ListarPorEmpresa, ListarPorCategoria, ListarPorId, Criar, Atualizar, Deletar };

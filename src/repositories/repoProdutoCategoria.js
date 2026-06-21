@@ -1,5 +1,10 @@
 import { execute } from "../database/mysql.js"
 
+async function Listar() {
+    const sql = "SELECT * FROM PRODUTO_CATEGORIA";
+    return await execute(sql);
+}
+
 async function ListarPorEmpresa(idEmpresa) {
     const sql = "SELECT * FROM PRODUTO_CATEGORIA WHERE id_empresa = ? ORDER BY ordem";
     return await execute(sql, [idEmpresa]);
@@ -25,4 +30,4 @@ async function Deletar(idProdutoCategoria) {
     return result.changes;
 }
 
-export default { ListarPorEmpresa, Criar, Atualizar, Deletar };
+export default { Listar, ListarPorEmpresa, Criar, Atualizar, Deletar };

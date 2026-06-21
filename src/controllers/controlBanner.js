@@ -7,4 +7,9 @@ const ListarPorEmpresa = asyncHandler(async (req, res) => {
     res.status(200).json(banners);
 });
 
-export default { ListarPorEmpresa };
+const Listar = asyncHandler(async (req, res) => {
+    const banners = await servBanner.Listar();
+    res.status(200).json(banners);
+});
+
+export default { Listar, ListarPorEmpresa };

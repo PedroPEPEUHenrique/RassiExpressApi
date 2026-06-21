@@ -31,11 +31,14 @@ router.delete("/empresas/:idEmpresa", controlEmpresa.Deletar)
 
 // Banners
 router.get("/banners/:idEmpresa", controlBanner.ListarPorEmpresa)
+router.get("/banners", controlBanner.Listar)
 
 // Destaques
 router.get("/destaques/:idEmpresa", controlDestaque.ListarPorEmpresa)
+router.get("/destaques", controlDestaque.Listar)
 
 // Produtos
+router.get("/produtos", controlProduto.Listar)
 router.get("/produtos/empresa/:idEmpresa", controlProduto.ListarPorEmpresa)
 router.get("/produtos/categoria/:idProdutoCategoria", controlProduto.ListarPorCategoria)
 router.get("/produtos/:idProduto", controlProduto.ListarPorId)
@@ -44,6 +47,7 @@ router.put("/produtos/:idProduto", validate(atualizarProdutoSchema), controlProd
 router.delete("/produtos/:idProduto", controlProduto.Deletar)
 
 // Categorias de Produtos
+router.get("/produto-categorias", controlProdutoCategoria.Listar)
 router.get("/produto-categorias/:idEmpresa", controlProdutoCategoria.ListarPorEmpresa)
 router.post("/produto-categorias", validate(criarProdutoCategoriaSchema), controlProdutoCategoria.Criar)
 router.put("/produto-categorias/:idProdutoCategoria", validate(atualizarProdutoCategoriaSchema), controlProdutoCategoria.Atualizar)
@@ -52,6 +56,7 @@ router.delete("/produto-categorias/:idProdutoCategoria", controlProdutoCategoria
 // Usuários
 router.post("/usuarios", validate(criarUsuarioSchema), controlUsuario.Criar)
 router.post("/usuarios/login", validate(loginSchema), controlUsuario.Login)
+router.get("/usuarios", controlUsuario.Listar)
 router.get("/usuarios/:idUsuario", controlUsuario.ListarPorId)
 router.put("/usuarios/:idUsuario", validate(atualizarUsuarioSchema), controlUsuario.Atualizar)
 
@@ -59,6 +64,7 @@ router.put("/usuarios/:idUsuario", validate(atualizarUsuarioSchema), controlUsua
 router.post("/pedidos", validate(criarPedidoSchema), controlPedido.Criar)
 router.get("/pedidos/usuario/:idUsuario", controlPedido.ListarPorUsuario)
 router.get("/pedidos/empresa/:idEmpresa", controlPedido.ListarPorEmpresa)
+router.get("/pedidos", controlPedido.Listar),
 router.get("/pedidos/:idPedido", controlPedido.ListarPorId)
 router.patch("/pedidos/:idPedido/status", validate(atualizarStatusSchema), controlPedido.AtualizarStatus)
 

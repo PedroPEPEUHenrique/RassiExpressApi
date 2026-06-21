@@ -1,6 +1,11 @@
 import servUsuario from "../services/servUsuario.js";
 import asyncHandler from "../middleware/asyncHandler.js";
 
+const Listar = asyncHandler(async (req, res) => {
+    const categorias = await servUsuario.Listar();
+    res.status(200).json(categorias);
+});
+
 const Criar = asyncHandler(async (req, res) => {
     const usuario = await servUsuario.Criar(req.body);
     res.status(201).json(usuario);
@@ -24,4 +29,4 @@ const Atualizar = asyncHandler(async (req, res) => {
     res.status(200).json(usuario);
 });
 
-export default { Criar, Login, ListarPorId, Atualizar };
+export default { Listar, Criar, Login, ListarPorId, Atualizar };
