@@ -1,5 +1,8 @@
 import 'dotenv/config';
+import bcrypt from 'bcryptjs';
 import { execute, pool } from './mysql.js';
+
+const usuarioDemo = { nome: 'Usuário Demo', email: 'demo@rassifood.com', senha: 'demo123' };
 
 const categorias = [
   { nome: 'BURGUER', emoji: '🍔', ordem: 1 },
@@ -121,7 +124,19 @@ async function seed() {
     }
   }
 
+  // A limpeza acima não apaga USUARIO para não derrubar contas reais de teste.
+  // O usuário demo é inserido de forma idempotente, pela chave única do e-mail.
+  console.log('Inserindo usuário demo...');
+  const senhaHash = await bcrypt.hash(usuarioDemo.senha, 10);
+  await execute(
+    `INSERT INTO USUARIO (nome, email, senha, cidade, estado, dt_cadastro)
+     VALUES (?, ?, ?, 'Goiânia', 'GO', NOW())
+     ON DUPLICATE KEY UPDATE nome = VALUES(nome), senha = VALUES(senha)`,
+    [usuarioDemo.nome, usuarioDemo.email, senhaHash]
+  );
+
   console.log('Seed concluído!');
+  console.log(`Login de teste: ${usuarioDemo.email} / ${usuarioDemo.senha}`);
   await pool.end();
 }
 

@@ -48,3 +48,16 @@ export const atualizarUsuarioSchema = Joi.object({
     nome: Joi.string().max(100).optional(),
     ...enderecoFields,
 });
+
+export const alterarSenhaSchema = Joi.object({
+    senhaAtual: Joi.string().required().messages({
+        'any.required': 'Senha atual é obrigatória',
+        'string.empty': 'Senha atual é obrigatória',
+    }),
+    novaSenha: Joi.string().min(6).max(50).required().messages({
+        'any.required': 'Nova senha é obrigatória',
+        'string.empty': 'Nova senha é obrigatória',
+        'string.min': 'Nova senha deve ter no mínimo 6 caracteres',
+        'string.max': 'Nova senha deve ter no máximo 50 caracteres',
+    }),
+});

@@ -111,12 +111,17 @@ CREATE TABLE IF NOT EXISTS DESTAQUE (
     FOREIGN KEY (id_produto) REFERENCES PRODUTO(id_produto) ON DELETE CASCADE
 );
 
+-- id_produto nulo = o usuário favoritou a empresa inteira, não um produto específico.
+-- A coluna gerada id_produto_key existe para viabilizar a UNIQUE KEY: no MySQL um
+-- índice único permite múltiplos NULL, o que deixaria passar favoritos duplicados.
 CREATE TABLE IF NOT EXISTS USER_FAVORITO (
-    id_favorito   INT AUTO_INCREMENT PRIMARY KEY,
-    id_usuario    INT NOT NULL,
-    id_empresa    INT NOT NULL,
-    id_produto    INT NOT NULL,
-    dt_favoritado DATETIME NOT NULL DEFAULT NOW(),
+    id_favorito    INT AUTO_INCREMENT PRIMARY KEY,
+    id_usuario     INT NOT NULL,
+    id_empresa     INT NOT NULL,
+    id_produto     INT NULL,
+    id_produto_key INT GENERATED ALWAYS AS (IFNULL(id_produto, 0)) STORED,
+    dt_favoritado  DATETIME NOT NULL DEFAULT NOW(),
+    UNIQUE KEY uk_favorito (id_usuario, id_empresa, id_produto_key),
     FOREIGN KEY (id_usuario) REFERENCES USUARIO(id_usuario) ON DELETE CASCADE,
     FOREIGN KEY (id_empresa) REFERENCES EMPRESA(id_empresa) ON DELETE CASCADE,
     FOREIGN KEY (id_produto) REFERENCES PRODUTO(id_produto) ON DELETE CASCADE

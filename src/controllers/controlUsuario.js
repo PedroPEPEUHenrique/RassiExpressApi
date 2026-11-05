@@ -2,8 +2,8 @@ import servUsuario from "../services/servUsuario.js";
 import asyncHandler from "../middleware/asyncHandler.js";
 
 const Listar = asyncHandler(async (req, res) => {
-    const categorias = await servUsuario.Listar();
-    res.status(200).json(categorias);
+    const usuarios = await servUsuario.Listar();
+    res.status(200).json(usuarios);
 });
 
 const Criar = asyncHandler(async (req, res) => {
@@ -29,4 +29,10 @@ const Atualizar = asyncHandler(async (req, res) => {
     res.status(200).json(usuario);
 });
 
-export default { Listar, Criar, Login, ListarPorId, Atualizar };
+const AlterarSenha = asyncHandler(async (req, res) => {
+    const { senhaAtual, novaSenha } = req.body;
+    await servUsuario.AlterarSenha(req.usuario.id, senhaAtual, novaSenha);
+    res.status(200).json({ mensagem: "Senha alterada com sucesso" });
+});
+
+export default { Listar, Criar, Login, ListarPorId, Atualizar, AlterarSenha };

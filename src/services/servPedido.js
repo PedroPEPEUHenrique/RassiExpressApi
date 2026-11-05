@@ -1,6 +1,8 @@
 import repoPedido from "../repositories/repoPedido.js"
 import repoItensPedido from "../repositories/repoItensPedido.js"
 
+const STATUS_VALIDOS = ["pendente", "confirmado", "preparando", "saiu_entrega", "entregue", "cancelado"];
+
 async function Listar() {
     return await repoPedido.Listar();
 }
@@ -34,11 +36,24 @@ async function ListarPorId(idPedido) {
     return { ...pedido, itens };
 }
 
-async function AtualizarStatus(idPedido, status) {
-    const statusValidos = ["pendente", "confirmado", "preparando", "saiu_entrega", "entregue", "cancelado"];
-    if (!statusValidos.includes(status)) throw { status: 400, mensagem: "Status inválido" };
-    const changes = await repoPedido.AtualizarStatus(idPedido, status);
-    if (!changes) throw { status: 404, mensagem: "Pedido não encontrado" };
+async function ListarPorIdParaUsuario(idPedido, idUsuario) {
+    const pedido = await ListarPorId(idPedido);
+    if (pedido.id_usuario !== Number(idUsuario)) {
+        throw { status: 403, mensagem: "Acesso negado a pedido de outro usuário" };
+    }
+    return pedido;
 }
 
-export default { Listar, Criar, ListarPorUsuario, ListarPorEmpresa, ListarPorId, AtualizarStatus };
+async function AtualizarStatus(idPedido, status, idUsuario) {
+    if (!STATUS_VALIDOS.includes(status)) throw { status: 400, mensagem: "Status inválido" };
+
+    const pedido = await repoPedido.ListarPorId(idPedido);
+    if (!pedido) throw { status: 404, mensagem: "Pedido não encontrado" };
+    if (pedido.id_usuario !== Number(idUsuario)) {
+        throw { status: 403, mensagem: "Acesso negado a pedido de outro usuário" };
+    }
+
+    await repoPedido.AtualizarStatus(idPedido, status);
+}
+
+export default { Listar, Criar, ListarPorUsuario, ListarPorEmpresa, ListarPorId, ListarPorIdParaUsuario, AtualizarStatus };

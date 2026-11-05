@@ -1,12 +1,19 @@
 import { execute } from "../database/mysql.js"
 
+const COLUNAS_PUBLICAS = "id_usuario, nome, email, telefone, cep, endereco, numero, complemento, bairro, cidade, estado, dt_cadastro";
+
 async function Listar() {
-    const sql = "SELECT * FROM USUARIO";
+    const sql = `SELECT ${COLUNAS_PUBLICAS} FROM USUARIO`;
     return await execute(sql);
 }
 
 async function ListarPorId(idUsuario) {
-    const sql = "SELECT id_usuario, nome, email, telefone, cep, endereco, numero, complemento, bairro, cidade, estado, dt_cadastro FROM USUARIO WHERE id_usuario = ?";
+    const sql = `SELECT ${COLUNAS_PUBLICAS} FROM USUARIO WHERE id_usuario = ?`;
+    return await execute(sql, [idUsuario], "get");
+}
+
+async function ListarComSenhaPorId(idUsuario) {
+    const sql = "SELECT id_usuario, senha FROM USUARIO WHERE id_usuario = ?";
     return await execute(sql, [idUsuario], "get");
 }
 
@@ -44,4 +51,10 @@ async function Atualizar(idUsuario, usuario) {
     return result.changes;
 }
 
-export default { Listar, ListarPorId, ListarPorEmail, Criar, Atualizar };
+async function AtualizarSenha(idUsuario, senhaHash) {
+    const sql = "UPDATE USUARIO SET senha = ? WHERE id_usuario = ?";
+    const result = await execute(sql, [senhaHash, idUsuario], "run");
+    return result.changes;
+}
+
+export default { Listar, ListarPorId, ListarComSenhaPorId, ListarPorEmail, Criar, Atualizar, AtualizarSenha };

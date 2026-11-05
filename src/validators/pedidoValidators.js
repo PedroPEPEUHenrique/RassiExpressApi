@@ -25,10 +25,6 @@ export const criarPedidoSchema = Joi.object({
         'any.required': 'Empresa é obrigatória',
         'number.base': 'Empresa inválida',
     }),
-    idUsuario: Joi.number().integer().required().messages({
-        'any.required': 'Usuário é obrigatório',
-        'number.base': 'Usuário inválido',
-    }),
     vlSubtotal: Joi.number().min(0).required().messages({
         'any.required': 'Subtotal é obrigatório',
         'number.base': 'Subtotal deve ser um número',

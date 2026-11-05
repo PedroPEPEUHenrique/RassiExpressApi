@@ -2,12 +2,12 @@ import servPedido from "../services/servPedido.js";
 import asyncHandler from "../middleware/asyncHandler.js";
 
 const Listar = asyncHandler(async (req, res) => {
-    const categorias = await servPedido.Listar();
-    res.status(200).json(categorias);
+    const pedidos = await servPedido.Listar();
+    res.status(200).json(pedidos);
 });
 
 const Criar = asyncHandler(async (req, res) => {
-    const pedido = await servPedido.Criar(req.body);
+    const pedido = await servPedido.Criar({ ...req.body, idUsuario: req.usuario.id });
     res.status(201).json(pedido);
 });
 
@@ -25,14 +25,14 @@ const ListarPorEmpresa = asyncHandler(async (req, res) => {
 
 const ListarPorId = asyncHandler(async (req, res) => {
     const { idPedido } = req.params;
-    const pedido = await servPedido.ListarPorId(idPedido);
+    const pedido = await servPedido.ListarPorIdParaUsuario(idPedido, req.usuario.id);
     res.status(200).json(pedido);
 });
 
 const AtualizarStatus = asyncHandler(async (req, res) => {
     const { idPedido } = req.params;
     const { status } = req.body;
-    await servPedido.AtualizarStatus(idPedido, status);
+    await servPedido.AtualizarStatus(idPedido, status, req.usuario.id);
     res.status(200).json({ mensagem: "Status atualizado com sucesso" });
 });
 

@@ -8,13 +8,13 @@ const ListarPorUsuario = asyncHandler(async (req, res) => {
 });
 
 const Criar = asyncHandler(async (req, res) => {
-    const favorito = await servUserFavorito.Criar(req.body);
+    const favorito = await servUserFavorito.Criar({ ...req.body, idUsuario: req.usuario.id });
     res.status(201).json(favorito);
 });
 
 const Deletar = asyncHandler(async (req, res) => {
     const { idFavorito } = req.params;
-    await servUserFavorito.Deletar(idFavorito);
+    await servUserFavorito.Deletar(idFavorito, req.usuario.id);
     res.status(204).send();
 });
 
