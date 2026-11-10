@@ -1,11 +1,6 @@
 import servProdutoCategoria from "../services/servProdutoCategoria.js";
 import asyncHandler from "../middleware/asyncHandler.js";
 
-const Listar = asyncHandler(async (req, res) => {
-    const categorias = await servProdutoCategoria.Listar();
-    res.status(200).json(categorias);
-});
-
 const ListarPorEmpresa = asyncHandler(async (req, res) => {
     const { idEmpresa } = req.params;
     const categorias = await servProdutoCategoria.ListarPorEmpresa(idEmpresa);
@@ -13,20 +8,20 @@ const ListarPorEmpresa = asyncHandler(async (req, res) => {
 });
 
 const Criar = asyncHandler(async (req, res) => {
-    const categoria = await servProdutoCategoria.Criar(req.body);
+    const categoria = await servProdutoCategoria.Criar(req.body, req.usuario.idEmpresa);
     res.status(201).json(categoria);
 });
 
 const Atualizar = asyncHandler(async (req, res) => {
     const { idProdutoCategoria } = req.params;
-    const categoria = await servProdutoCategoria.Atualizar(idProdutoCategoria, req.body);
+    const categoria = await servProdutoCategoria.Atualizar(idProdutoCategoria, req.body, req.usuario.idEmpresa);
     res.status(200).json(categoria);
 });
 
 const Deletar = asyncHandler(async (req, res) => {
     const { idProdutoCategoria } = req.params;
-    await servProdutoCategoria.Deletar(idProdutoCategoria);
+    await servProdutoCategoria.Deletar(idProdutoCategoria, req.usuario.idEmpresa);
     res.status(204).send();
 });
 
-export default { Listar, ListarPorEmpresa, Criar, Atualizar, Deletar };
+export default { ListarPorEmpresa, Criar, Atualizar, Deletar };

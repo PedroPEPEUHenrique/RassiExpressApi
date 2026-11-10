@@ -1,5 +1,7 @@
 import Joi from 'joi';
 
+// idEmpresa saiu dos dois schemas: o restaurante vem do token. Aceitá-lo no
+// corpo permitia cadastrar e mover produto no cardápio de outro restaurante.
 export const criarProdutoSchema = Joi.object({
     nome: Joi.string().max(100).required().messages({
         'any.required': 'Nome é obrigatório',
@@ -12,11 +14,10 @@ export const criarProdutoSchema = Joi.object({
         'number.base': 'Valor deve ser um número',
         'number.min': 'Valor não pode ser negativo',
     }),
-    idEmpresa: Joi.number().integer().required().messages({
-        'any.required': 'Empresa é obrigatória',
-        'number.base': 'Empresa inválida',
+    idProdutoCategoria: Joi.number().integer().required().messages({
+        'any.required': 'Categoria é obrigatória',
+        'number.base': 'Categoria inválida',
     }),
-    idProdutoCategoria: Joi.number().integer().allow(null).optional(),
     ativo: Joi.number().integer().valid(0, 1).optional(),
 });
 
@@ -28,6 +29,6 @@ export const atualizarProdutoSchema = Joi.object({
         'number.base': 'Valor deve ser um número',
         'number.min': 'Valor não pode ser negativo',
     }),
-    idProdutoCategoria: Joi.number().integer().allow(null).optional(),
+    idProdutoCategoria: Joi.number().integer().optional(),
     ativo: Joi.number().integer().valid(0, 1).optional(),
 });

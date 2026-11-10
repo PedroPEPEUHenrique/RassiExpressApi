@@ -10,16 +10,23 @@ async function ListarPorEmpresa(idEmpresa) {
     return await execute(sql, [idEmpresa]);
 }
 
+// Traz o id_empresa para o service checar o dono antes de alterar ou de
+// devolver os produtos da categoria.
+async function ListarPorId(idProdutoCategoria) {
+    const sql = "SELECT * FROM PRODUTO_CATEGORIA WHERE id_produto_categoria = ?";
+    return await execute(sql, [idProdutoCategoria], "get");
+}
+
 async function Criar(produtoCategoria) {
     const sql = "INSERT INTO PRODUTO_CATEGORIA (id_empresa, categoria, ordem) VALUES (?, ?, ?)";
-    const params = [produtoCategoria.idEmpresa, produtoCategoria.categoria, produtoCategoria.ordem];
+    const params = [produtoCategoria.idEmpresa, produtoCategoria.categoria, produtoCategoria.ordem ?? 0];
     const result = await execute(sql, params, "run");
     return result.lastID;
 }
 
 async function Atualizar(idProdutoCategoria, produtoCategoria) {
     const sql = "UPDATE PRODUTO_CATEGORIA SET categoria = ?, ordem = ? WHERE id_produto_categoria = ?";
-    const params = [produtoCategoria.categoria, produtoCategoria.ordem, idProdutoCategoria];
+    const params = [produtoCategoria.categoria, produtoCategoria.ordem ?? 0, idProdutoCategoria];
     const result = await execute(sql, params, "run");
     return result.changes;
 }
@@ -30,4 +37,4 @@ async function Deletar(idProdutoCategoria) {
     return result.changes;
 }
 
-export default { Listar, ListarPorEmpresa, Criar, Atualizar, Deletar };
+export default { Listar, ListarPorEmpresa, ListarPorId, Criar, Atualizar, Deletar };

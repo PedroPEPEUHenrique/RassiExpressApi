@@ -9,7 +9,13 @@ function errorHandler(err, req, res, next) {
         console.error(`[${req.method} ${req.originalUrl}]`, err);
     }
 
-    res.status(status).json({ mensagem });
+    // Alguns erros previstos precisam levar dado junto para o app agir — o
+    // login de quem trabalha em mais de um restaurante devolve a lista para a
+    // escolha. Só é enviado quando o service preenche `dados` de propósito.
+    const corpo = { mensagem };
+    if (err.dados !== undefined) corpo.dados = err.dados;
+
+    res.status(status).json(corpo);
 }
 
 export default errorHandler;

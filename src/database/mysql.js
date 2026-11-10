@@ -11,8 +11,17 @@ const pool = mysql.createPool({
     decimalNumbers: true,
 });
 
-async function execute(sql, params, method = "all") {
-    const [rows] = await pool.execute(sql, params);
+/**
+ * Executa uma instrução SQL.
+ *
+ * O parâmetro `executor` decide quem roda a query. Por padrão é o pool, que
+ * entrega qualquer conexão livre em autocommit. Passando a conexão recebida de
+ * withTransaction, a query entra na transação em curso — é assim que um
+ * repositório participa de uma escrita atômica sem precisar conhecer a
+ * transação que o envolve.
+ */
+async function execute(sql, params, method = "all", executor = pool) {
+    const [rows] = await executor.execute(sql, params);
     if (method === "run") {
         return { lastID: rows.insertId, changes: rows.affectedRows };
     } else if (method === "get") {
@@ -21,4 +30,28 @@ async function execute(sql, params, method = "all") {
     return rows;
 }
 
-export { pool, execute };
+/**
+ * Roda `fn` dentro de uma transação, entregando a ela a conexão que deve ser
+ * repassada aos repositórios. Commita ao final, faz rollback em qualquer erro
+ * e devolve a conexão ao pool nos dois casos.
+ *
+ * Necessário porque `execute` sozinho roda cada statement em autocommit: uma
+ * operação de várias escritas (criar funcionário, lançar uma rodada numa
+ * comanda) poderia falhar no meio e deixar o banco inconsistente.
+ */
+async function withTransaction(fn) {
+    const conn = await pool.getConnection();
+    try {
+        await conn.beginTransaction();
+        const resultado = await fn(conn);
+        await conn.commit();
+        return resultado;
+    } catch (erro) {
+        await conn.rollback();
+        throw erro;
+    } finally {
+        conn.release();
+    }
+}
+
+export { pool, execute, withTransaction };

@@ -48,6 +48,22 @@ CREATE TABLE IF NOT EXISTS EMPRESA_CATEGORIA (
     FOREIGN KEY (id_categoria) REFERENCES CATEGORIAS(id_categoria) ON DELETE CASCADE
 );
 
+-- USUARIO é a identidade (quem é, e-mail, senha); FUNCIONARIO é o vínculo de
+-- trabalho. A separação permite que a mesma pessoa seja gestora de um
+-- restaurante e garçom de outro, como o modelo multi-loja exige.
+CREATE TABLE IF NOT EXISTS FUNCIONARIO (
+    id_funcionario INT AUTO_INCREMENT PRIMARY KEY,
+    id_usuario     INT NOT NULL,
+    id_empresa     INT NOT NULL,
+    papel          ENUM('gestor', 'garcom', 'cozinha') NOT NULL,
+    ativo          TINYINT(1) NOT NULL DEFAULT 1,
+    dt_admissao    DATETIME NOT NULL DEFAULT NOW(),
+    UNIQUE KEY uk_funcionario_usuario_empresa (id_usuario, id_empresa),
+    KEY idx_funcionario_empresa_papel (id_empresa, papel),
+    FOREIGN KEY (id_usuario) REFERENCES USUARIO(id_usuario) ON DELETE CASCADE,
+    FOREIGN KEY (id_empresa) REFERENCES EMPRESA(id_empresa) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS PRODUTO_CATEGORIA (
     id_produto_categoria INT AUTO_INCREMENT PRIMARY KEY,
     id_empresa           INT NOT NULL,

@@ -1,10 +1,7 @@
 import Joi from 'joi';
 
+// idEmpresa saiu: o restaurante vem do token.
 export const criarProdutoCategoriaSchema = Joi.object({
-    idEmpresa: Joi.number().integer().required().messages({
-        'any.required': 'Empresa é obrigatória',
-        'number.base': 'Empresa inválida',
-    }),
     categoria: Joi.string().max(100).required().messages({
         'any.required': 'Categoria é obrigatória',
         'string.empty': 'Categoria é obrigatória',

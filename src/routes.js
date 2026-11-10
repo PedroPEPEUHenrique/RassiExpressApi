@@ -1,100 +1,94 @@
 import { Router } from "express";
-import controlCategoria from "./controllers/controlCategoria.js"
 import controlEmpresa from "./controllers/controlEmpresa.js"
-import controlBanner from "./controllers/controlBanner.js"
-import controlDestaque from "./controllers/controlDestaque.js"
 import controlProduto from "./controllers/controlProduto.js"
 import controlProdutoCategoria from "./controllers/controlProdutoCategoria.js"
 import controlUsuario from "./controllers/controlUsuario.js"
-import controlPedido from "./controllers/controlPedido.js"
-import controlUserFavorito from "./controllers/controlUserFavorito.js"
+import controlFuncionario from "./controllers/controlFuncionario.js"
 import validate from "./middleware/validate.js"
-import { autenticar, autorizarProprietario } from "./middleware/auth.js"
-import { criarUsuarioSchema, loginSchema, atualizarUsuarioSchema, alterarSenhaSchema } from "./validators/usuarioValidators.js"
-import { criarEmpresaSchema, atualizarEmpresaSchema } from "./validators/empresaValidators.js"
+import { autenticar, autorizarProprietario, autorizarPapel, escopoEmpresa } from "./middleware/auth.js"
+import { loginSchema, atualizarUsuarioSchema, alterarSenhaSchema } from "./validators/usuarioValidators.js"
+import { criarFuncionarioSchema } from "./validators/funcionarioValidators.js"
+import { atualizarEmpresaSchema } from "./validators/empresaValidators.js"
 import { criarProdutoSchema, atualizarProdutoSchema } from "./validators/produtoValidators.js"
 import { criarProdutoCategoriaSchema, atualizarProdutoCategoriaSchema } from "./validators/produtoCategoriaValidators.js"
-import { criarPedidoSchema, atualizarStatusSchema } from "./validators/pedidoValidators.js"
-import { criarFavoritoSchema } from "./validators/favoritoValidators.js"
 
 const router = Router();
 
+// ===========================================================================
+// POLÍTICA DE ACESSO
+//
+// Não existe mais rota pública além do login. O catálogo era aberto porque o
+// app de delivery precisava mostrar restaurante a quem nem tinha conta; num
+// app interno, cardápio é dado do negócio.
+//
+// Três camadas se combinam:
+//   autenticar       — exige token válido já contendo empresa e papel
+//   escopoEmpresa    — quando o id do restaurante vem pela URL, exige que seja
+//                      o do token
+//   autorizarPapel   — restringe a operação a gestor, garçom ou cozinha
+//
+// Quando o id do restaurante NÃO vem pela URL, o valor usado é sempre
+// req.usuario.idEmpresa. O corpo da requisição nunca decide isso.
+//
+// Saíram desta fase, e por quê:
+//   - GET /empresas, /empresas/categoria/:id, /banners, /destaques,
+//     /categorias, GET /produtos e /produto-categorias sem filtro, GET
+//     /usuarios, GET /pedidos: vitrine do delivery e, pior, listagens que
+//     devolviam dado de todos os restaurantes a qualquer token.
+//   - POST /usuarios (cadastro público): quem admite alguém agora é o gestor,
+//     via POST /funcionarios.
+//   - POST e DELETE /empresas: cadastro e exclusão de restaurante é operação
+//     de plataforma. Ver o comentário em servEmpresa.js.
+//   - Rotas de /pedidos e /favoritos: modeladas para cliente de delivery. A
+//     Fase 1 reintroduz pedido sobre MESA e COMANDA.
+// ===========================================================================
+
 // ---------------------------------------------------------------------------
-// Rotas públicas — catálogo. São somente leitura e não expõem dado de usuário.
+// Pública — única porta de entrada.
 // ---------------------------------------------------------------------------
-
-// Categorias
-router.get("/categorias", controlCategoria.Listar)
-
-// Empresas
-router.get("/empresas", controlEmpresa.Listar)
-router.get("/empresas/:idEmpresa", controlEmpresa.ListarPorId)
-router.get("/empresas/categoria/:idCategoria", controlEmpresa.ListarPorCategoria)
-
-// Banners
-router.get("/banners/:idEmpresa", controlBanner.ListarPorEmpresa)
-router.get("/banners", controlBanner.Listar)
-
-// Destaques
-router.get("/destaques/:idEmpresa", controlDestaque.ListarPorEmpresa)
-router.get("/destaques", controlDestaque.Listar)
-
-// Produtos
-router.get("/produtos", controlProduto.Listar)
-router.get("/produtos/empresa/:idEmpresa", controlProduto.ListarPorEmpresa)
-router.get("/produtos/categoria/:idProdutoCategoria", controlProduto.ListarPorCategoria)
-router.get("/produtos/:idProduto", controlProduto.ListarPorId)
-
-// Categorias de Produtos
-router.get("/produto-categorias", controlProdutoCategoria.Listar)
-router.get("/produto-categorias/:idEmpresa", controlProdutoCategoria.ListarPorEmpresa)
-
-// ---------------------------------------------------------------------------
-// Autenticação — únicas rotas de usuário abertas.
-// ---------------------------------------------------------------------------
-router.post("/usuarios", validate(criarUsuarioSchema), controlUsuario.Criar)
 router.post("/usuarios/login", validate(loginSchema), controlUsuario.Login)
 
 // ---------------------------------------------------------------------------
-// Rotas autenticadas — exigem "Authorization: Bearer <token>".
-// autorizarProprietario garante que o usuário do token é o dono do recurso.
+// Restaurante — o gestor lê e edita apenas o próprio.
 // ---------------------------------------------------------------------------
+router.get("/empresas/:idEmpresa", autenticar, escopoEmpresa(), controlEmpresa.ListarPorId)
+router.put("/empresas/:idEmpresa", autenticar, escopoEmpresa(), autorizarPapel("gestor"), validate(atualizarEmpresaSchema), controlEmpresa.Atualizar)
 
-// Usuários
+// ---------------------------------------------------------------------------
+// Equipe — admissão. A gestão completa (listar, promover, desativar) vem na
+// Fase 3; aqui existe o mínimo para o gestor dar acesso a garçom e cozinha.
+// ---------------------------------------------------------------------------
+router.post("/funcionarios", autenticar, autorizarPapel("gestor"), validate(criarFuncionarioSchema), controlFuncionario.Criar)
+
+// ---------------------------------------------------------------------------
+// Perfil próprio — qualquer papel cuida da própria conta.
+// ---------------------------------------------------------------------------
 router.patch("/usuarios/senha", autenticar, validate(alterarSenhaSchema), controlUsuario.AlterarSenha)
 router.get("/usuarios/:idUsuario", autenticar, autorizarProprietario("idUsuario"), controlUsuario.ListarPorId)
 router.put("/usuarios/:idUsuario", autenticar, autorizarProprietario("idUsuario"), validate(atualizarUsuarioSchema), controlUsuario.Atualizar)
 
-// Pedidos — o idUsuario vem do token, nunca do corpo da requisição.
-router.post("/pedidos", autenticar, validate(criarPedidoSchema), controlPedido.Criar)
-router.get("/pedidos/usuario/:idUsuario", autenticar, autorizarProprietario("idUsuario"), controlPedido.ListarPorUsuario)
-router.get("/pedidos/:idPedido", autenticar, controlPedido.ListarPorId)
-router.patch("/pedidos/:idPedido/status", autenticar, validate(atualizarStatusSchema), controlPedido.AtualizarStatus)
-
-// Favoritos
-router.get("/favoritos/usuario/:idUsuario", autenticar, autorizarProprietario("idUsuario"), controlUserFavorito.ListarPorUsuario)
-router.post("/favoritos", autenticar, validate(criarFavoritoSchema), controlUserFavorito.Criar)
-router.delete("/favoritos/:idFavorito", autenticar, controlUserFavorito.Deletar)
+// ---------------------------------------------------------------------------
+// Cardápio — leitura liberada a toda a equipe: o garçom lança o pedido a
+// partir dela e a cozinha confere o que foi pedido.
+//
+// As duas últimas recebem id de produto ou de categoria, não de empresa, então
+// escopoEmpresa não se aplica: a conferência de dono acontece no service, que
+// compara o id_empresa do registro com o do token.
+// ---------------------------------------------------------------------------
+router.get("/produto-categorias/:idEmpresa", autenticar, escopoEmpresa(), controlProdutoCategoria.ListarPorEmpresa)
+router.get("/produtos/empresa/:idEmpresa", autenticar, escopoEmpresa(), controlProduto.ListarPorEmpresa)
+router.get("/produtos/categoria/:idProdutoCategoria", autenticar, controlProduto.ListarPorCategoria)
+router.get("/produtos/:idProduto", autenticar, controlProduto.ListarPorId)
 
 // ---------------------------------------------------------------------------
-// Rotas administrativas — hoje exigem apenas autenticação.
-// TODO: a tabela USUARIO não tem coluna de papel; o controle de acesso por
-// papel (admin / lojista) depende dessa modelagem e está pendente.
+// Cardápio — escrita restrita ao gestor.
 // ---------------------------------------------------------------------------
-router.get("/usuarios", autenticar, controlUsuario.Listar)
-router.get("/pedidos", autenticar, controlPedido.Listar)
-router.get("/pedidos/empresa/:idEmpresa", autenticar, controlPedido.ListarPorEmpresa)
+router.post("/produto-categorias", autenticar, autorizarPapel("gestor"), validate(criarProdutoCategoriaSchema), controlProdutoCategoria.Criar)
+router.put("/produto-categorias/:idProdutoCategoria", autenticar, autorizarPapel("gestor"), validate(atualizarProdutoCategoriaSchema), controlProdutoCategoria.Atualizar)
+router.delete("/produto-categorias/:idProdutoCategoria", autenticar, autorizarPapel("gestor"), controlProdutoCategoria.Deletar)
 
-router.post("/empresas", autenticar, validate(criarEmpresaSchema), controlEmpresa.Criar)
-router.put("/empresas/:idEmpresa", autenticar, validate(atualizarEmpresaSchema), controlEmpresa.Atualizar)
-router.delete("/empresas/:idEmpresa", autenticar, controlEmpresa.Deletar)
-
-router.post("/produtos", autenticar, validate(criarProdutoSchema), controlProduto.Criar)
-router.put("/produtos/:idProduto", autenticar, validate(atualizarProdutoSchema), controlProduto.Atualizar)
-router.delete("/produtos/:idProduto", autenticar, controlProduto.Deletar)
-
-router.post("/produto-categorias", autenticar, validate(criarProdutoCategoriaSchema), controlProdutoCategoria.Criar)
-router.put("/produto-categorias/:idProdutoCategoria", autenticar, validate(atualizarProdutoCategoriaSchema), controlProdutoCategoria.Atualizar)
-router.delete("/produto-categorias/:idProdutoCategoria", autenticar, controlProdutoCategoria.Deletar)
+router.post("/produtos", autenticar, autorizarPapel("gestor"), validate(criarProdutoSchema), controlProduto.Criar)
+router.put("/produtos/:idProduto", autenticar, autorizarPapel("gestor"), validate(atualizarProdutoSchema), controlProduto.Atualizar)
+router.delete("/produtos/:idProduto", autenticar, autorizarPapel("gestor"), controlProduto.Deletar)
 
 export default router;
