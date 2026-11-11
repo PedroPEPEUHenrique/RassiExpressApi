@@ -62,8 +62,9 @@ const equipe = [
 async function seed() {
   console.log('Limpando dados anteriores...');
   await execute('SET FOREIGN_KEY_CHECKS = 0', []);
-  for (const t of ['ITENS_PEDIDO', 'PEDIDO', 'USER_FAVORITO', 'DESTAQUE', 'BANNER', 'FUNCIONARIO',
-                   'PRODUTO', 'PRODUTO_CATEGORIA', 'EMPRESA_CATEGORIA', 'EMPRESA', 'CATEGORIAS']) {
+  for (const t of ['ITENS_PEDIDO', 'PEDIDO', 'COMANDA', 'MESA', 'USER_FAVORITO', 'DESTAQUE',
+                   'BANNER', 'FUNCIONARIO', 'PRODUTO', 'PRODUTO_CATEGORIA', 'EMPRESA_CATEGORIA',
+                   'EMPRESA', 'CATEGORIAS']) {
     await execute(`DELETE FROM ${t}`, []);
     await execute(`ALTER TABLE ${t} AUTO_INCREMENT = 1`, []);
   }
@@ -117,7 +118,28 @@ async function seed() {
     );
   }
 
-  console.log('\nSeed concluído. Logins de teste:');
+  // Salão do primeiro restaurante: 8 mesas no salão e 2 na varanda. O segundo
+  // fica com 3, o bastante para checar que um restaurante não enxerga a mesa
+  // do outro.
+  console.log('Montando o salão...');
+  const salao = [
+    { restaurante: 0, mesas: [...Array(8)].map((_, i) => ({ numero: String(i + 1), setor: 'Salão', capacidade: i < 4 ? 2 : 4 })) },
+    { restaurante: 0, mesas: [{ numero: '9', setor: 'Varanda', capacidade: 6 }, { numero: '10', setor: 'Varanda', capacidade: 6 }] },
+    { restaurante: 1, mesas: [...Array(3)].map((_, i) => ({ numero: String(i + 1), setor: 'Salão', capacidade: 4 })) },
+  ];
+  let totalMesas = 0;
+  for (const grupo of salao) {
+    for (const m of grupo.mesas) {
+      await execute(
+        'INSERT INTO MESA (id_empresa, numero, setor, capacidade, ativo) VALUES (?, ?, ?, ?, 1)',
+        [idsRestaurante[grupo.restaurante], m.numero, m.setor, m.capacidade]
+      );
+      totalMesas++;
+    }
+  }
+
+  console.log(`\nSeed concluído. ${totalMesas} mesas criadas.`);
+  console.log('Logins de teste:');
   for (const f of equipe) {
     console.log(`  ${f.papel.padEnd(8)} ${f.email.padEnd(20)} ${f.senha.padEnd(11)} → ${restaurantes[f.restaurante].nome}`);
   }

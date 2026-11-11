@@ -4,6 +4,9 @@ import controlProduto from "./controllers/controlProduto.js"
 import controlProdutoCategoria from "./controllers/controlProdutoCategoria.js"
 import controlUsuario from "./controllers/controlUsuario.js"
 import controlFuncionario from "./controllers/controlFuncionario.js"
+import controlMesa from "./controllers/controlMesa.js"
+import controlComanda from "./controllers/controlComanda.js"
+import controlPedido from "./controllers/controlPedido.js"
 import validate from "./middleware/validate.js"
 import { autenticar, autorizarProprietario, autorizarPapel, escopoEmpresa } from "./middleware/auth.js"
 import { loginSchema, atualizarUsuarioSchema, alterarSenhaSchema } from "./validators/usuarioValidators.js"
@@ -11,37 +14,31 @@ import { criarFuncionarioSchema } from "./validators/funcionarioValidators.js"
 import { atualizarEmpresaSchema } from "./validators/empresaValidators.js"
 import { criarProdutoSchema, atualizarProdutoSchema } from "./validators/produtoValidators.js"
 import { criarProdutoCategoriaSchema, atualizarProdutoCategoriaSchema } from "./validators/produtoCategoriaValidators.js"
+import { criarMesaSchema, atualizarMesaSchema } from "./validators/mesaValidators.js"
+import { abrirComandaSchema, fecharComandaSchema } from "./validators/comandaValidators.js"
+import { lancarRodadaSchema, atualizarStatusSchema } from "./validators/pedidoValidators.js"
 
 const router = Router();
 
 // ===========================================================================
 // POLÍTICA DE ACESSO
 //
-// Não existe mais rota pública além do login. O catálogo era aberto porque o
-// app de delivery precisava mostrar restaurante a quem nem tinha conta; num
-// app interno, cardápio é dado do negócio.
-//
-// Três camadas se combinam:
-//   autenticar       — exige token válido já contendo empresa e papel
-//   escopoEmpresa    — quando o id do restaurante vem pela URL, exige que seja
-//                      o do token
-//   autorizarPapel   — restringe a operação a gestor, garçom ou cozinha
+// Não existe rota pública além do login. Três camadas se combinam:
+//   autenticar     — token válido, já contendo empresa e papel
+//   escopoEmpresa  — quando o id do restaurante vem pela URL, exige o do token
+//   autorizarPapel — restringe a gestor, garçom ou cozinha
 //
 // Quando o id do restaurante NÃO vem pela URL, o valor usado é sempre
 // req.usuario.idEmpresa. O corpo da requisição nunca decide isso.
 //
-// Saíram desta fase, e por quê:
-//   - GET /empresas, /empresas/categoria/:id, /banners, /destaques,
-//     /categorias, GET /produtos e /produto-categorias sem filtro, GET
-//     /usuarios, GET /pedidos: vitrine do delivery e, pior, listagens que
-//     devolviam dado de todos os restaurantes a qualquer token.
-//   - POST /usuarios (cadastro público): quem admite alguém agora é o gestor,
-//     via POST /funcionarios.
-//   - POST e DELETE /empresas: cadastro e exclusão de restaurante é operação
-//     de plataforma. Ver o comentário em servEmpresa.js.
-//   - Rotas de /pedidos e /favoritos: modeladas para cliente de delivery. A
-//     Fase 1 reintroduz pedido sobre MESA e COMANDA.
+// Papéis no salão:
+//   garçom  — abre mesa, lança rodada, entrega, fecha a conta
+//   cozinha — vê a fila e avança o preparo
+//   gestor  — tudo, mais cardápio, mesas e equipe
 // ===========================================================================
+
+const EQUIPE = ["gestor", "garcom", "cozinha"];
+const SALAO = ["gestor", "garcom"];
 
 // ---------------------------------------------------------------------------
 // Pública — única porta de entrada.
@@ -49,15 +46,41 @@ const router = Router();
 router.post("/usuarios/login", validate(loginSchema), controlUsuario.Login)
 
 // ---------------------------------------------------------------------------
-// Restaurante — o gestor lê e edita apenas o próprio.
+// Salão — mapa de mesas.
+// ---------------------------------------------------------------------------
+router.get("/mesas", autenticar, autorizarPapel(...EQUIPE), controlMesa.ListarSalao)
+router.post("/mesas", autenticar, autorizarPapel("gestor"), validate(criarMesaSchema), controlMesa.Criar)
+router.put("/mesas/:idMesa", autenticar, autorizarPapel("gestor"), validate(atualizarMesaSchema), controlMesa.Atualizar)
+router.delete("/mesas/:idMesa", autenticar, autorizarPapel("gestor"), controlMesa.Desativar)
+
+// ---------------------------------------------------------------------------
+// Comandas — a conta da mesa.
+// ---------------------------------------------------------------------------
+router.get("/comandas", autenticar, autorizarPapel(...EQUIPE), controlComanda.ListarAbertas)
+router.post("/comandas", autenticar, autorizarPapel(...SALAO), validate(abrirComandaSchema), controlComanda.Abrir)
+router.get("/comandas/:idComanda", autenticar, autorizarPapel(...EQUIPE), controlComanda.ListarPorId)
+router.patch("/comandas/:idComanda/fechar", autenticar, autorizarPapel(...SALAO), validate(fecharComandaSchema), controlComanda.Fechar)
+
+// Lançar rodada é operação sobre a comanda, e a URL diz isso: a rodada não
+// existe fora de uma conta aberta.
+router.post("/comandas/:idComanda/pedidos", autenticar, autorizarPapel(...SALAO), validate(lancarRodadaSchema), controlComanda.LancarRodada)
+
+// ---------------------------------------------------------------------------
+// Cozinha — a fila de preparo.
+//
+// O garçom também avança status: é ele quem marca "entregue" ao levar o prato
+// à mesa.
+// ---------------------------------------------------------------------------
+router.get("/cozinha/fila", autenticar, autorizarPapel(...EQUIPE), controlPedido.ListarFilaCozinha)
+router.get("/pedidos/:idPedido", autenticar, autorizarPapel(...EQUIPE), controlPedido.ListarPorId)
+router.patch("/pedidos/:idPedido/status", autenticar, autorizarPapel(...EQUIPE), validate(atualizarStatusSchema), controlPedido.AtualizarStatus)
+
+// ---------------------------------------------------------------------------
+// Restaurante e equipe.
 // ---------------------------------------------------------------------------
 router.get("/empresas/:idEmpresa", autenticar, escopoEmpresa(), controlEmpresa.ListarPorId)
 router.put("/empresas/:idEmpresa", autenticar, escopoEmpresa(), autorizarPapel("gestor"), validate(atualizarEmpresaSchema), controlEmpresa.Atualizar)
 
-// ---------------------------------------------------------------------------
-// Equipe — admissão. A gestão completa (listar, promover, desativar) vem na
-// Fase 3; aqui existe o mínimo para o gestor dar acesso a garçom e cozinha.
-// ---------------------------------------------------------------------------
 router.post("/funcionarios", autenticar, autorizarPapel("gestor"), validate(criarFuncionarioSchema), controlFuncionario.Criar)
 
 // ---------------------------------------------------------------------------
@@ -68,21 +91,14 @@ router.get("/usuarios/:idUsuario", autenticar, autorizarProprietario("idUsuario"
 router.put("/usuarios/:idUsuario", autenticar, autorizarProprietario("idUsuario"), validate(atualizarUsuarioSchema), controlUsuario.Atualizar)
 
 // ---------------------------------------------------------------------------
-// Cardápio — leitura liberada a toda a equipe: o garçom lança o pedido a
-// partir dela e a cozinha confere o que foi pedido.
-//
-// As duas últimas recebem id de produto ou de categoria, não de empresa, então
-// escopoEmpresa não se aplica: a conferência de dono acontece no service, que
-// compara o id_empresa do registro com o do token.
+// Cardápio — leitura para toda a equipe (o garçom lança a partir dela),
+// escrita só para o gestor.
 // ---------------------------------------------------------------------------
 router.get("/produto-categorias/:idEmpresa", autenticar, escopoEmpresa(), controlProdutoCategoria.ListarPorEmpresa)
 router.get("/produtos/empresa/:idEmpresa", autenticar, escopoEmpresa(), controlProduto.ListarPorEmpresa)
 router.get("/produtos/categoria/:idProdutoCategoria", autenticar, controlProduto.ListarPorCategoria)
 router.get("/produtos/:idProduto", autenticar, controlProduto.ListarPorId)
 
-// ---------------------------------------------------------------------------
-// Cardápio — escrita restrita ao gestor.
-// ---------------------------------------------------------------------------
 router.post("/produto-categorias", autenticar, autorizarPapel("gestor"), validate(criarProdutoCategoriaSchema), controlProdutoCategoria.Criar)
 router.put("/produto-categorias/:idProdutoCategoria", autenticar, autorizarPapel("gestor"), validate(atualizarProdutoCategoriaSchema), controlProdutoCategoria.Atualizar)
 router.delete("/produto-categorias/:idProdutoCategoria", autenticar, autorizarPapel("gestor"), controlProdutoCategoria.Deletar)

@@ -20,6 +20,20 @@ async function ListarPorId(idProduto) {
     return await execute(sql, [idProduto], "get");
 }
 
+/**
+ * Vários produtos de uma vez, já restritos à empresa.
+ *
+ * Lançar uma rodada precisa do preço atual de N produtos. Buscar um a um
+ * multiplicaria as idas ao banco dentro da transação — justamente onde a
+ * conexão fica presa e bloqueia as outras.
+ */
+async function ListarPorIdsDaEmpresa(ids, idEmpresa, conn) {
+    if (!ids.length) return [];
+    const marcadores = ids.map(() => "?").join(", ");
+    const sql = `SELECT * FROM PRODUTO WHERE id_produto IN (${marcadores}) AND id_empresa = ?`;
+    return await execute(sql, [...ids, idEmpresa], "all", conn);
+}
+
 async function Criar(produto) {
     const sql = `
         INSERT INTO PRODUTO (id_empresa, id_produto_categoria, nome, descricao, icone, valor, ativo)
@@ -52,4 +66,4 @@ async function Deletar(idProduto) {
     return result.changes;
 }
 
-export default { Listar, ListarPorEmpresa, ListarPorCategoria, ListarPorId, Criar, Atualizar, Deletar };
+export default { Listar, ListarPorEmpresa, ListarPorCategoria, ListarPorId, ListarPorIdsDaEmpresa, Criar, Atualizar, Deletar };
