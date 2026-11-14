@@ -35,8 +35,30 @@ async function Atualizar(idProdutoCategoria, produtoCategoria, idEmpresa) {
     return { idProdutoCategoria: Number(idProdutoCategoria), ...atualizado };
 }
 
+/**
+ * Apaga a categoria — e só se ela estiver vazia.
+ *
+ * A exclusão é física, e as chaves estrangeiras cascateiam:
+ *   PRODUTO_CATEGORIA → PRODUTO → ITENS_PEDIDO
+ *
+ * Ou seja, apagar uma seção do cardápio apagaria os itens vendidos em
+ * comandas já fechadas, deixando os totais históricos sem lastro e
+ * destruindo a base dos relatórios. Um toque na tela do gestor não pode ter
+ * esse alcance, então a categoria com produtos é recusada: ele move ou
+ * desativa os itens antes, de forma consciente.
+ */
 async function Deletar(idProdutoCategoria, idEmpresa) {
-    await buscarDaEmpresa(idProdutoCategoria, idEmpresa);
+    const categoria = await buscarDaEmpresa(idProdutoCategoria, idEmpresa);
+
+    const produtos = await repoProdutoCategoria.ContarProdutos(idProdutoCategoria);
+    if (produtos > 0) {
+        throw {
+            status: 409,
+            mensagem: `"${categoria.categoria}" ainda tem ${produtos} produto(s). Mova-os para outra categoria antes de excluir.`,
+            dados: { produtos },
+        };
+    }
+
     const changes = await repoProdutoCategoria.Deletar(idProdutoCategoria);
     if (!changes) throw { status: 404, mensagem: "Categoria de produto não encontrada" };
 }

@@ -80,7 +80,13 @@ CREATE TABLE IF NOT EXISTS PRODUTO (
     descricao            TEXT,
     icone                VARCHAR(255),
     valor                DECIMAL(10,2) NOT NULL,
+    -- ativo = está no cardápio (decisão de cardápio, rara).
+    -- disponivel = tem hoje ("acabou o filé", um toque, toda noite).
+    -- Separados porque confundi-los obriga a escolher entre vender o que não
+    -- tem e apagar do cadastro o que volta amanhã.
     ativo                TINYINT(1) NOT NULL DEFAULT 1,
+    disponivel           TINYINT(1) NOT NULL DEFAULT 1,
+    KEY idx_produto_empresa_estado (id_empresa, ativo, disponivel),
     FOREIGN KEY (id_empresa)           REFERENCES EMPRESA(id_empresa)                       ON DELETE CASCADE,
     FOREIGN KEY (id_produto_categoria) REFERENCES PRODUTO_CATEGORIA(id_produto_categoria)   ON DELETE CASCADE
 );

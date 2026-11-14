@@ -138,6 +138,13 @@ async function seed() {
     }
   }
 
+  // Um item em falta já de saída, para a diferença entre "fora do cardápio" e
+  // "acabou hoje" ficar visível no primeiro login do gestor.
+  await execute(
+    'UPDATE PRODUTO SET disponivel = 0 WHERE nome = ? AND id_empresa = ?',
+    ['Risoto de camarão', idsRestaurante[0]]
+  );
+
   console.log(`\nSeed concluído. ${totalMesas} mesas criadas.`);
   console.log('Logins de teste:');
   for (const f of equipe) {

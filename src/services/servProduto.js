@@ -67,11 +67,33 @@ async function Atualizar(idProduto, produto, idEmpresa) {
         icone: produto.icone ?? atual.icone,
         valor: produto.valor ?? atual.valor,
         ativo: produto.ativo ?? atual.ativo,
+        disponivel: produto.disponivel ?? atual.disponivel,
     };
 
     const changes = await repoProduto.Atualizar(idProduto, atualizado);
     if (!changes) throw { status: 404, mensagem: "Produto não encontrado" };
     return { idProduto: Number(idProduto), ...atualizado };
+}
+
+/**
+ * Marca o produto como em falta ou de volta.
+ *
+ * Operação deliberadamente leve: recebe só o booleano. É o gesto mais
+ * frequente do dia e precisa ser um toque, não um formulário.
+ */
+async function AlternarDisponibilidade(idProduto, disponivel, idEmpresa) {
+    const produto = await buscarDaEmpresa(idProduto, idEmpresa);
+
+    // Produto fora do cardápio não tem disponibilidade a alternar: o estado
+    // que o gestor quer mexer é outro, e deixar passar daria a impressão de
+    // que o item voltou para a lista do garçom quando ele não voltou.
+    if (!produto.ativo) {
+        throw { status: 409, mensagem: `"${produto.nome}" está fora do cardápio. Reative-o antes.` };
+    }
+
+    const changes = await repoProduto.AtualizarDisponibilidade(idProduto, disponivel);
+    if (!changes) throw { status: 404, mensagem: "Produto não encontrado" };
+    return { idProduto: Number(idProduto), disponivel: !!disponivel };
 }
 
 async function Deletar(idProduto, idEmpresa) {
@@ -80,4 +102,7 @@ async function Deletar(idProduto, idEmpresa) {
     if (!changes) throw { status: 404, mensagem: "Produto não encontrado" };
 }
 
-export default { ListarPorEmpresa, ListarPorCategoria, ListarPorId, Criar, Atualizar, Deletar };
+export default {
+    ListarPorEmpresa, ListarPorCategoria, ListarPorId,
+    Criar, Atualizar, AlternarDisponibilidade, Deletar,
+};

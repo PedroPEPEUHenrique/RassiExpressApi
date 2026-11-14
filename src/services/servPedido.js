@@ -89,7 +89,17 @@ async function Criar(idComanda, { itens, idLocal }, idEmpresa, idFuncionario) {
     const itensCalculados = itens.map((item) => {
         const produto = porId.get(Number(item.idProduto));
         if (!produto) throw { status: 404, mensagem: `Produto ${item.idProduto} não encontrado no cardápio` };
-        if (!produto.ativo) throw { status: 409, mensagem: `"${produto.nome}" não está mais disponível` };
+        if (!produto.ativo) throw { status: 409, mensagem: `"${produto.nome}" saiu do cardápio` };
+        // A checagem acontece no envio, não só ao montar a rodada: entre o
+        // garçom tocar no prato e apertar enviar, a cozinha pode ter marcado
+        // que acabou. Barrar aqui evita mandar para a cozinha algo que ela
+        // acabou de dizer que não tem.
+        //
+        // Compara com 0 em vez de usar negação: num banco onde a migration 004
+        // ainda não rodou a coluna não existe, o campo vem undefined, e `!x`
+        // recusaria TODOS os pedidos com a mensagem errada. Sem a coluna não
+        // existe conceito de falta, então o certo é deixar passar.
+        if (Number(produto.disponivel) === 0) throw { status: 409, mensagem: `"${produto.nome}" acabou` };
 
         const quantidade = Number(item.quantidade);
         if (!Number.isInteger(quantidade) || quantidade < 1) {

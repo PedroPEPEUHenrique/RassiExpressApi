@@ -21,6 +21,16 @@ export const criarProdutoSchema = Joi.object({
     ativo: Joi.number().integer().valid(0, 1).optional(),
 });
 
+// Toque de "acabou" / "voltou". Só o booleano: enviar o produto inteiro
+// abriria espaço para sobrescrever preço por engano num gesto que deveria ser
+// inofensivo.
+export const disponibilidadeSchema = Joi.object({
+    disponivel: Joi.boolean().required().messages({
+        'any.required': 'Informe se o produto está disponível',
+        'boolean.base': 'Disponibilidade deve ser verdadeiro ou falso',
+    }),
+});
+
 export const atualizarProdutoSchema = Joi.object({
     nome: Joi.string().max(100).optional(),
     descricao: Joi.string().max(500).allow('', null).optional(),
@@ -31,4 +41,5 @@ export const atualizarProdutoSchema = Joi.object({
     }),
     idProdutoCategoria: Joi.number().integer().optional(),
     ativo: Joi.number().integer().valid(0, 1).optional(),
+    disponivel: Joi.number().integer().valid(0, 1).optional(),
 });

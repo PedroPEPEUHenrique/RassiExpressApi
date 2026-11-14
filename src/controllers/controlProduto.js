@@ -36,4 +36,12 @@ const Deletar = asyncHandler(async (req, res) => {
     res.status(204).send();
 });
 
-export default { ListarPorEmpresa, ListarPorCategoria, ListarPorId, Criar, Atualizar, Deletar };
+const AlternarDisponibilidade = asyncHandler(async (req, res) => {
+    const { idProduto } = req.params;
+    const produto = await servProduto.AlternarDisponibilidade(
+        idProduto, req.body.disponivel, req.usuario.idEmpresa
+    );
+    res.status(200).json(produto);
+});
+
+export default { ListarPorEmpresa, ListarPorCategoria, ListarPorId, Criar, Atualizar, AlternarDisponibilidade, Deletar };

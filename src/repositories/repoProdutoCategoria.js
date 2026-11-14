@@ -31,10 +31,19 @@ async function Atualizar(idProdutoCategoria, produtoCategoria) {
     return result.changes;
 }
 
+// Conta TUDO, inclusive produto inativo: o que importa aqui é se existe linha
+// em PRODUTO apontando para esta categoria, porque é ela que a cascata
+// alcançaria.
+async function ContarProdutos(idProdutoCategoria, conn) {
+    const sql = "SELECT COUNT(*) AS total FROM PRODUTO WHERE id_produto_categoria = ?";
+    const linha = await execute(sql, [idProdutoCategoria], "get", conn);
+    return Number(linha?.total ?? 0);
+}
+
 async function Deletar(idProdutoCategoria) {
     const sql = "DELETE FROM PRODUTO_CATEGORIA WHERE id_produto_categoria = ?";
     const result = await execute(sql, [idProdutoCategoria], "run");
     return result.changes;
 }
 
-export default { Listar, ListarPorEmpresa, ListarPorId, Criar, Atualizar, Deletar };
+export default { Listar, ListarPorEmpresa, ListarPorId, ContarProdutos, Criar, Atualizar, Deletar };

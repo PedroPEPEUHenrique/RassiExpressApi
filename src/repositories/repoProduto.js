@@ -1,17 +1,35 @@
 import { execute } from "../database/mysql.js"
 
-async function Listar() {
-    const sql = "SELECT * FROM PRODUTO";
-    return await execute(sql);
-}
-
+/**
+ * Cardápio que o garçom lança: só o que está no cardápio e tem hoje.
+ *
+ * O filtro por disponivel acontece aqui, e não na tela, para que um produto
+ * que acabou saia da lista de todo mundo no mesmo instante.
+ */
 async function ListarPorEmpresa(idEmpresa) {
-    const sql = "SELECT * FROM PRODUTO WHERE id_empresa = ? AND ativo = 1 ORDER BY nome";
+    const sql = `
+        SELECT * FROM PRODUTO
+        WHERE id_empresa = ? AND ativo = 1 AND disponivel = 1
+        ORDER BY nome
+    `;
     return await execute(sql, [idEmpresa]);
 }
 
+/**
+ * Cardápio que o gestor administra: tudo, inclusive o que está em falta e o
+ * que foi tirado do cardápio — senão ele não teria como trazer de volta.
+ */
+async function ListarTodosPorEmpresa(idEmpresa, conn) {
+    const sql = "SELECT * FROM PRODUTO WHERE id_empresa = ? ORDER BY nome";
+    return await execute(sql, [idEmpresa], "all", conn);
+}
+
 async function ListarPorCategoria(idProdutoCategoria) {
-    const sql = "SELECT * FROM PRODUTO WHERE id_produto_categoria = ? AND ativo = 1 ORDER BY nome";
+    const sql = `
+        SELECT * FROM PRODUTO
+        WHERE id_produto_categoria = ? AND ativo = 1 AND disponivel = 1
+        ORDER BY nome
+    `;
     return await execute(sql, [idProdutoCategoria]);
 }
 
@@ -36,8 +54,8 @@ async function ListarPorIdsDaEmpresa(ids, idEmpresa, conn) {
 
 async function Criar(produto) {
     const sql = `
-        INSERT INTO PRODUTO (id_empresa, id_produto_categoria, nome, descricao, icone, valor, ativo)
-        VALUES (?, ?, ?, ?, ?, ?, 1)
+        INSERT INTO PRODUTO (id_empresa, id_produto_categoria, nome, descricao, icone, valor, ativo, disponivel)
+        VALUES (?, ?, ?, ?, ?, ?, 1, 1)
     `;
     const params = [
         produto.idEmpresa, produto.idProdutoCategoria,
@@ -49,14 +67,30 @@ async function Criar(produto) {
 
 async function Atualizar(idProduto, produto) {
     const sql = `
-        UPDATE PRODUTO SET id_produto_categoria = ?, nome = ?, descricao = ?, icone = ?, valor = ?, ativo = ?
+        UPDATE PRODUTO SET id_produto_categoria = ?, nome = ?, descricao = ?, icone = ?,
+                           valor = ?, ativo = ?, disponivel = ?
         WHERE id_produto = ?
     `;
     const params = [
         produto.idProdutoCategoria, produto.nome,
-        produto.descricao ?? null, produto.icone ?? null, produto.valor, produto.ativo, idProduto
+        produto.descricao ?? null, produto.icone ?? null, produto.valor,
+        produto.ativo, produto.disponivel, idProduto
     ];
     const result = await execute(sql, params, "run");
+    return result.changes;
+}
+
+/**
+ * Toque único de "acabou" / "voltou".
+ *
+ * Separado do Atualizar de propósito: é a operação mais frequente do serviço
+ * e não deve exigir que o app reenvie nome, preço e categoria só para dizer
+ * que o filé acabou — enviar o produto inteiro abriria espaço para sobrescrever
+ * preço por engano num gesto que deveria ser inofensivo.
+ */
+async function AtualizarDisponibilidade(idProduto, disponivel, conn) {
+    const sql = "UPDATE PRODUTO SET disponivel = ? WHERE id_produto = ?";
+    const result = await execute(sql, [disponivel ? 1 : 0, idProduto], "run", conn);
     return result.changes;
 }
 
@@ -66,4 +100,7 @@ async function Deletar(idProduto) {
     return result.changes;
 }
 
-export default { Listar, ListarPorEmpresa, ListarPorCategoria, ListarPorId, ListarPorIdsDaEmpresa, Criar, Atualizar, Deletar };
+export default {
+    ListarPorEmpresa, ListarTodosPorEmpresa, ListarPorCategoria, ListarPorId,
+    ListarPorIdsDaEmpresa, Criar, Atualizar, AtualizarDisponibilidade, Deletar,
+};

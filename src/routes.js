@@ -7,12 +7,13 @@ import controlFuncionario from "./controllers/controlFuncionario.js"
 import controlMesa from "./controllers/controlMesa.js"
 import controlComanda from "./controllers/controlComanda.js"
 import controlPedido from "./controllers/controlPedido.js"
+import controlCardapio from "./controllers/controlCardapio.js"
 import validate from "./middleware/validate.js"
 import { autenticar, autorizarProprietario, autorizarPapel, escopoEmpresa } from "./middleware/auth.js"
 import { loginSchema, atualizarUsuarioSchema, alterarSenhaSchema } from "./validators/usuarioValidators.js"
 import { criarFuncionarioSchema } from "./validators/funcionarioValidators.js"
 import { atualizarEmpresaSchema } from "./validators/empresaValidators.js"
-import { criarProdutoSchema, atualizarProdutoSchema } from "./validators/produtoValidators.js"
+import { criarProdutoSchema, atualizarProdutoSchema, disponibilidadeSchema } from "./validators/produtoValidators.js"
 import { criarProdutoCategoriaSchema, atualizarProdutoCategoriaSchema } from "./validators/produtoCategoriaValidators.js"
 import { criarMesaSchema, atualizarMesaSchema } from "./validators/mesaValidators.js"
 import { abrirComandaSchema, fecharComandaSchema } from "./validators/comandaValidators.js"
@@ -102,6 +103,17 @@ router.get("/produtos/:idProduto", autenticar, controlProduto.ListarPorId)
 router.post("/produto-categorias", autenticar, autorizarPapel("gestor"), validate(criarProdutoCategoriaSchema), controlProdutoCategoria.Criar)
 router.put("/produto-categorias/:idProdutoCategoria", autenticar, autorizarPapel("gestor"), validate(atualizarProdutoCategoriaSchema), controlProdutoCategoria.Atualizar)
 router.delete("/produto-categorias/:idProdutoCategoria", autenticar, autorizarPapel("gestor"), controlProdutoCategoria.Deletar)
+
+// Cardápio completo do gestor: inclui o que está em falta e o que saiu do
+// cardápio, que a lista do garçom não traz.
+router.get("/cardapio", autenticar, autorizarPapel("gestor"), controlCardapio.Listar)
+
+// Marcar "acabou" é liberado para toda a equipe, não só para o gestor. Quem
+// descobre que o filé acabou é quem está no salão ou na cozinha, e exigir o
+// gestor significaria continuar vendendo o que não existe. O erro é de um
+// toque e se desfaz com outro; o custo de não permitir é prato vendido e não
+// entregue.
+router.patch("/produtos/:idProduto/disponibilidade", autenticar, autorizarPapel(...EQUIPE), validate(disponibilidadeSchema), controlProduto.AlternarDisponibilidade)
 
 router.post("/produtos", autenticar, autorizarPapel("gestor"), validate(criarProdutoSchema), controlProduto.Criar)
 router.put("/produtos/:idProduto", autenticar, autorizarPapel("gestor"), validate(atualizarProdutoSchema), controlProduto.Atualizar)
