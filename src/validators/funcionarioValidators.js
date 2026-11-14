@@ -27,3 +27,19 @@ export const criarFuncionarioSchema = Joi.object({
         'any.only': 'Papel deve ser gestor, garcom ou cozinha',
     }),
 });
+
+// Só o papel. O resto do cadastro muda por outras rotas; promover alguém não
+// deve arrastar nome e e-mail junto.
+export const alterarPapelSchema = Joi.object({
+    papel: Joi.string().valid('gestor', 'garcom', 'cozinha').required().messages({
+        'any.required': 'Papel é obrigatório',
+        'any.only': 'Papel deve ser gestor, garcom ou cozinha',
+    }),
+});
+
+export const alterarAtivoSchema = Joi.object({
+    ativo: Joi.boolean().required().messages({
+        'any.required': 'Informe se o funcionário está ativo',
+        'boolean.base': 'Ativo deve ser verdadeiro ou falso',
+    }),
+});

@@ -62,7 +62,8 @@ const equipe = [
 async function seed() {
   console.log('Limpando dados anteriores...');
   await execute('SET FOREIGN_KEY_CHECKS = 0', []);
-  for (const t of ['ITENS_PEDIDO', 'PEDIDO', 'COMANDA', 'MESA', 'USER_FAVORITO', 'DESTAQUE',
+  for (const t of ['MOVIMENTO_ESTOQUE', 'FICHA_TECNICA', 'INSUMO', 'MOVIMENTO_CAIXA', 'CAIXA',
+                   'ITENS_PEDIDO', 'PEDIDO', 'COMANDA', 'MESA', 'USER_FAVORITO', 'DESTAQUE',
                    'BANNER', 'FUNCIONARIO', 'PRODUTO', 'PRODUTO_CATEGORIA', 'EMPRESA_CATEGORIA',
                    'EMPRESA', 'CATEGORIAS']) {
     await execute(`DELETE FROM ${t}`, []);

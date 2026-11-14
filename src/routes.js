@@ -8,10 +8,15 @@ import controlMesa from "./controllers/controlMesa.js"
 import controlComanda from "./controllers/controlComanda.js"
 import controlPedido from "./controllers/controlPedido.js"
 import controlCardapio from "./controllers/controlCardapio.js"
+import controlCaixa from "./controllers/controlCaixa.js"
+import controlRelatorio from "./controllers/controlRelatorio.js"
+import controlEstoque from "./controllers/controlEstoque.js"
 import validate from "./middleware/validate.js"
 import { autenticar, autorizarProprietario, autorizarPapel, escopoEmpresa } from "./middleware/auth.js"
 import { loginSchema, atualizarUsuarioSchema, alterarSenhaSchema } from "./validators/usuarioValidators.js"
-import { criarFuncionarioSchema } from "./validators/funcionarioValidators.js"
+import { criarFuncionarioSchema, alterarPapelSchema, alterarAtivoSchema } from "./validators/funcionarioValidators.js"
+import { abrirCaixaSchema, fecharCaixaSchema, lancarMovimentoSchema } from "./validators/caixaValidators.js"
+import { criarInsumoSchema, atualizarInsumoSchema, movimentarSchema, salvarFichaSchema } from "./validators/estoqueValidators.js"
 import { atualizarEmpresaSchema } from "./validators/empresaValidators.js"
 import { criarProdutoSchema, atualizarProdutoSchema, disponibilidadeSchema } from "./validators/produtoValidators.js"
 import { criarProdutoCategoriaSchema, atualizarProdutoCategoriaSchema } from "./validators/produtoCategoriaValidators.js"
@@ -82,7 +87,56 @@ router.patch("/pedidos/:idPedido/status", autenticar, autorizarPapel(...EQUIPE),
 router.get("/empresas/:idEmpresa", autenticar, escopoEmpresa(), controlEmpresa.ListarPorId)
 router.put("/empresas/:idEmpresa", autenticar, escopoEmpresa(), autorizarPapel("gestor"), validate(atualizarEmpresaSchema), controlEmpresa.Atualizar)
 
+// ---------------------------------------------------------------------------
+// Equipe — só o gestor administra.
+//
+// Promover e desligar têm duas travas no service, as duas pela mesma razão:
+// ninguém muda o próprio papel nem se desliga, e o último gestor ativo não
+// pode deixar de ser gestor. Sem elas o restaurante ficaria trancado para
+// fora do próprio sistema, sem ninguém com poder de destrancar.
+// ---------------------------------------------------------------------------
+router.get("/funcionarios", autenticar, autorizarPapel("gestor"), controlFuncionario.Listar)
 router.post("/funcionarios", autenticar, autorizarPapel("gestor"), validate(criarFuncionarioSchema), controlFuncionario.Criar)
+router.patch("/funcionarios/:idFuncionario/papel", autenticar, autorizarPapel("gestor"), validate(alterarPapelSchema), controlFuncionario.AlterarPapel)
+router.patch("/funcionarios/:idFuncionario/ativo", autenticar, autorizarPapel("gestor"), validate(alterarAtivoSchema), controlFuncionario.AlterarAtivo)
+router.get("/equipe/desempenho", autenticar, autorizarPapel("gestor"), controlFuncionario.Desempenho)
+
+// ---------------------------------------------------------------------------
+// Caixa — o livro do turno.
+//
+// Abrir e fechar é do gestor. Lançar movimento é liberado ao salão porque
+// sangria e suprimento acontecem durante o serviço, com o gestor longe do
+// aparelho; a cozinha fica de fora por não lidar com dinheiro.
+// ---------------------------------------------------------------------------
+router.get("/caixa", autenticar, autorizarPapel(...SALAO), controlCaixa.Atual)
+router.post("/caixa", autenticar, autorizarPapel("gestor"), validate(abrirCaixaSchema), controlCaixa.Abrir)
+router.patch("/caixa/:idCaixa/fechar", autenticar, autorizarPapel("gestor"), validate(fecharCaixaSchema), controlCaixa.Fechar)
+router.post("/caixa/movimentos", autenticar, autorizarPapel(...SALAO), validate(lancarMovimentoSchema), controlCaixa.Lancar)
+router.get("/caixa/historico", autenticar, autorizarPapel("gestor"), controlCaixa.Historico)
+router.get("/caixa/:idCaixa", autenticar, autorizarPapel("gestor"), controlCaixa.ListarPorId)
+
+// ---------------------------------------------------------------------------
+// Relatórios — faturamento, mais vendidos, desempenho e horário de pico.
+// ---------------------------------------------------------------------------
+router.get("/relatorios/painel", autenticar, autorizarPapel("gestor"), controlRelatorio.Painel)
+
+// ---------------------------------------------------------------------------
+// Estoque — insumos e ficha técnica.
+//
+// Registrar perda é liberado ao salão e à cozinha: quem derruba o prato ou vê
+// o insumo estragar é quem está lá, e a baixa precisa sair no momento. Criar,
+// editar e dar entrada continuam com o gestor, porque mexem em custo.
+// ---------------------------------------------------------------------------
+router.get("/insumos", autenticar, autorizarPapel(...EQUIPE), controlEstoque.Listar)
+router.post("/insumos", autenticar, autorizarPapel("gestor"), validate(criarInsumoSchema), controlEstoque.Criar)
+router.put("/insumos/:idInsumo", autenticar, autorizarPapel("gestor"), validate(atualizarInsumoSchema), controlEstoque.Atualizar)
+router.delete("/insumos/:idInsumo", autenticar, autorizarPapel("gestor"), controlEstoque.Desativar)
+router.get("/insumos/:idInsumo/movimentos", autenticar, autorizarPapel("gestor"), controlEstoque.Movimentos)
+router.post("/insumos/:idInsumo/movimentos", autenticar, autorizarPapel(...EQUIPE), validate(movimentarSchema), controlEstoque.Movimentar)
+
+router.get("/produtos/:idProduto/ficha", autenticar, autorizarPapel("gestor"), controlEstoque.ObterFicha)
+router.put("/produtos/:idProduto/ficha", autenticar, autorizarPapel("gestor"), validate(salvarFichaSchema), controlEstoque.SalvarFicha)
+router.delete("/produtos/:idProduto/ficha/:idInsumo", autenticar, autorizarPapel("gestor"), controlEstoque.RemoverDaFicha)
 
 // ---------------------------------------------------------------------------
 // Perfil próprio — qualquer papel cuida da própria conta.

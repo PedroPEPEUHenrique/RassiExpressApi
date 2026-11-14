@@ -3,6 +3,7 @@ import repoPedido from "../repositories/repoPedido.js"
 import repoItensPedido from "../repositories/repoItensPedido.js"
 import repoComanda from "../repositories/repoComanda.js"
 import repoProduto from "../repositories/repoProduto.js"
+import servEstoque from "./servEstoque.js"
 
 /**
  * Fluxo de uma rodada na cozinha. Não existe estado "rascunho" aqui: enquanto
@@ -141,6 +142,13 @@ async function Criar(idComanda, { itens, idLocal }, idEmpresa, idFuncionario) {
             await repoItensPedido.Criar({ ...item, idPedido: novoId }, conn);
         }
         await repoComanda.RecalcularTotal(idComanda, conn);
+
+        // Baixa de estoque na mesma transação: se a rodada existe, o consumo
+        // existe. Produto sem ficha técnica não movimenta nada, e saldo
+        // negativo não impede a venda — o prato já foi pedido, e travar o
+        // salão por um erro de cadastro de retaguarda seria pior.
+        await servEstoque.BaixarPorRodada(itensCalculados, novoId, idEmpresa, idFuncionario, conn);
+
         return novoId;
     });
 

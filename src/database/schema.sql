@@ -201,3 +201,104 @@ CREATE TABLE IF NOT EXISTS USER_FAVORITO (
     FOREIGN KEY (id_empresa) REFERENCES EMPRESA(id_empresa) ON DELETE CASCADE,
     FOREIGN KEY (id_produto) REFERENCES PRODUTO(id_produto) ON DELETE CASCADE
 );
+
+-- ---------------------------------------------------------------------------
+-- Caixa (Fase 4) — o livro do turno.
+--
+-- id_empresa_aberto repete o recurso de COMANDA.id_mesa_aberta: vale o id da
+-- empresa só enquanto aberto e NULL depois, garantindo UM caixa aberto por
+-- restaurante sem impedir o histórico de turnos.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS CAIXA (
+    id_caixa                  INT AUTO_INCREMENT PRIMARY KEY,
+    id_empresa                INT NOT NULL,
+    id_funcionario_abertura   INT NOT NULL,
+    id_funcionario_fechamento INT NULL,
+    vl_abertura               DECIMAL(10,2) NOT NULL DEFAULT 0,
+    vl_informado              DECIMAL(10,2) NULL,
+    observacao                TEXT,
+    status                    ENUM('aberto', 'fechado') NOT NULL DEFAULT 'aberto',
+    dt_abertura               DATETIME NOT NULL DEFAULT NOW(),
+    dt_fechamento             DATETIME NULL,
+    id_empresa_aberto         INT GENERATED ALWAYS AS (IF(status = 'aberto', id_empresa, NULL)) STORED,
+    UNIQUE KEY uk_caixa_empresa_aberto (id_empresa_aberto),
+    KEY idx_caixa_empresa_data (id_empresa, dt_abertura),
+    FOREIGN KEY (id_empresa)                REFERENCES EMPRESA(id_empresa) ON DELETE CASCADE,
+    FOREIGN KEY (id_funcionario_abertura)   REFERENCES FUNCIONARIO(id_funcionario),
+    FOREIGN KEY (id_funcionario_fechamento) REFERENCES FUNCIONARIO(id_funcionario)
+);
+
+-- valor é sempre positivo; o tipo decide o sinal. O índice único em id_comanda
+-- impede que a mesma venda entre duas vezes no turno.
+CREATE TABLE IF NOT EXISTS MOVIMENTO_CAIXA (
+    id_movimento   INT AUTO_INCREMENT PRIMARY KEY,
+    id_caixa       INT NOT NULL,
+    id_empresa     INT NOT NULL,
+    id_funcionario INT NULL,
+    tipo           ENUM('venda', 'venda_externa', 'despesa', 'sangria', 'suprimento') NOT NULL,
+    descricao      VARCHAR(200),
+    valor          DECIMAL(10,2) NOT NULL,
+    id_comanda     INT NULL,
+    dt_movimento   DATETIME NOT NULL DEFAULT NOW(),
+    UNIQUE KEY uk_movimento_comanda (id_comanda),
+    KEY idx_movimento_caixa (id_caixa, tipo),
+    FOREIGN KEY (id_caixa)       REFERENCES CAIXA(id_caixa)     ON DELETE CASCADE,
+    FOREIGN KEY (id_empresa)     REFERENCES EMPRESA(id_empresa) ON DELETE CASCADE,
+    FOREIGN KEY (id_funcionario) REFERENCES FUNCIONARIO(id_funcionario),
+    FOREIGN KEY (id_comanda)     REFERENCES COMANDA(id_comanda) ON DELETE SET NULL
+);
+
+-- ---------------------------------------------------------------------------
+-- Estoque (Fase 5).
+--
+-- A ficha técnica é OPCIONAL: produto sem ficha não movimenta estoque, e o
+-- restaurante usa o sistema normalmente enquanto cadastra as receitas aos
+-- poucos.
+--
+-- qtd_atual é saldo acumulado em vez de soma dos movimentos a cada leitura: a
+-- tela é lida muito mais do que escrita. MOVIMENTO_ESTOQUE continua sendo a
+-- verdade auditável, e a coluna só muda na mesma transação do movimento.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS INSUMO (
+    id_insumo      INT AUTO_INCREMENT PRIMARY KEY,
+    id_empresa     INT NOT NULL,
+    nome           VARCHAR(100) NOT NULL,
+    unidade        ENUM('kg', 'g', 'l', 'ml', 'un') NOT NULL,
+    qtd_atual      DECIMAL(12,3) NOT NULL DEFAULT 0,
+    qtd_minima     DECIMAL(12,3) NOT NULL DEFAULT 0,
+    -- Quatro casas: insumo é comprado em quilo e consumido em grama, e duas
+    -- casas zerariam o custo unitário de tempero.
+    vl_custo_medio DECIMAL(12,4) NOT NULL DEFAULT 0,
+    ativo          TINYINT(1) NOT NULL DEFAULT 1,
+    UNIQUE KEY uk_insumo_empresa_nome (id_empresa, nome),
+    FOREIGN KEY (id_empresa) REFERENCES EMPRESA(id_empresa) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS FICHA_TECNICA (
+    id_ficha   INT AUTO_INCREMENT PRIMARY KEY,
+    id_produto INT NOT NULL,
+    id_insumo  INT NOT NULL,
+    quantidade DECIMAL(12,3) NOT NULL,
+    UNIQUE KEY uk_ficha_produto_insumo (id_produto, id_insumo),
+    FOREIGN KEY (id_produto) REFERENCES PRODUTO(id_produto) ON DELETE CASCADE,
+    FOREIGN KEY (id_insumo)  REFERENCES INSUMO(id_insumo)   ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS MOVIMENTO_ESTOQUE (
+    id_movimento   INT AUTO_INCREMENT PRIMARY KEY,
+    id_empresa     INT NOT NULL,
+    id_insumo      INT NOT NULL,
+    tipo           ENUM('entrada', 'saida_venda', 'perda', 'ajuste') NOT NULL,
+    quantidade     DECIMAL(12,3) NOT NULL,
+    vl_unitario    DECIMAL(12,4) NULL,
+    id_pedido      INT NULL,
+    id_funcionario INT NULL,
+    motivo         VARCHAR(200),
+    dt_movimento   DATETIME NOT NULL DEFAULT NOW(),
+    KEY idx_mov_estoque_insumo (id_insumo, dt_movimento),
+    KEY idx_mov_estoque_empresa (id_empresa, tipo, dt_movimento),
+    FOREIGN KEY (id_empresa)     REFERENCES EMPRESA(id_empresa) ON DELETE CASCADE,
+    FOREIGN KEY (id_insumo)      REFERENCES INSUMO(id_insumo)   ON DELETE CASCADE,
+    FOREIGN KEY (id_pedido)      REFERENCES PEDIDO(id_pedido)   ON DELETE SET NULL,
+    FOREIGN KEY (id_funcionario) REFERENCES FUNCIONARIO(id_funcionario)
+);

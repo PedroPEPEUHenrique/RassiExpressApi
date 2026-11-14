@@ -3,6 +3,7 @@ import repoComanda from "../repositories/repoComanda.js"
 import repoMesa from "../repositories/repoMesa.js"
 import repoPedido from "../repositories/repoPedido.js"
 import repoItensPedido from "../repositories/repoItensPedido.js"
+import servCaixa from "./servCaixa.js"
 
 const STATUS_PENDENTES = ["enviado", "em_preparo", "pronto"];
 
@@ -119,7 +120,16 @@ async function Fechar(idComanda, { forcar = false }, idEmpresa, idFuncionario) {
         const changes = await repoComanda.Fechar(idComanda, idFuncionario, conn);
         if (!changes) throw { status: 409, mensagem: "Esta comanda já foi fechada" };
 
-        return await repoComanda.ListarPorId(idComanda, conn);
+        const fechada = await repoComanda.ListarPorId(idComanda, conn);
+
+        // A venda entra no caixa do turno na mesma transação do fechamento: o
+        // total da mesa já É o valor da venda, e pedir que o gestor relance à
+        // mão seria digitar o mesmo número duas vezes e divergir na primeira
+        // distração. Sem caixa aberto não falha — a venda continua em COMANDA
+        // e nos relatórios; só não entra no livro do turno.
+        await servCaixa.RegistrarVendaDaComanda(fechada, idFuncionario, conn);
+
+        return fechada;
     });
 }
 
