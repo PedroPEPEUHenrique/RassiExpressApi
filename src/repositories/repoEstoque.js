@@ -90,6 +90,9 @@ async function CriarMovimento(mov, conn) {
 }
 
 async function ListarMovimentos(idInsumo, limite, conn) {
+    // LIMIT não aceita placeholder em prepared statement (ER_WRONG_ARGUMENTS).
+    // Forçar inteiro antes de interpolar mantém a interpolação segura.
+    const topo = Math.max(1, Math.min(500, Math.trunc(Number(limite)) || 50));
     const sql = `
         SELECT m.*, u.nome AS nome_funcionario
         FROM MOVIMENTO_ESTOQUE m
@@ -97,9 +100,9 @@ async function ListarMovimentos(idInsumo, limite, conn) {
         LEFT JOIN USUARIO u     ON u.id_usuario = f.id_usuario
         WHERE m.id_insumo = ?
         ORDER BY m.dt_movimento DESC, m.id_movimento DESC
-        LIMIT ?
+        LIMIT ${topo}
     `;
-    return await execute(sql, [idInsumo, limite], "all", conn);
+    return await execute(sql, [idInsumo], "all", conn);
 }
 
 // ---------------------------------------------------------------------------

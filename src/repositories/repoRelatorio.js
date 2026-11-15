@@ -50,6 +50,10 @@ async function PorDia(idEmpresa, de, ate, conn) {
  * renomeado ou tirado do cardápio depois.
  */
 async function MaisVendidos(idEmpresa, de, ate, limite, conn) {
+    // LIMIT não aceita placeholder em prepared statement — o MySQL responde
+    // ER_WRONG_ARGUMENTS. Interpolar é seguro aqui porque o valor é forçado a
+    // inteiro antes de entrar no SQL, nunca chegando como texto do cliente.
+    const topo = Math.max(1, Math.min(100, Math.trunc(Number(limite)) || 10));
     const sql = `
         SELECT ip.nome_produto,
                SUM(ip.quantidade) AS quantidade,
@@ -62,9 +66,9 @@ async function MaisVendidos(idEmpresa, de, ate, limite, conn) {
           AND c.dt_fechamento >= ? AND c.dt_fechamento < ?
         GROUP BY ip.nome_produto
         ORDER BY quantidade DESC, faturamento DESC
-        LIMIT ?
+        LIMIT ${topo}
     `;
-    return await execute(sql, [idEmpresa, de, ate, limite], "all", conn);
+    return await execute(sql, [idEmpresa, de, ate], "all", conn);
 }
 
 // Quantas mesas fecharam em cada faixa de horário — o dado que diz onde

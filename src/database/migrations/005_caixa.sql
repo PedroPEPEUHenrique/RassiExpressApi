@@ -38,7 +38,11 @@ CREATE TABLE IF NOT EXISTS CAIXA (
     id_empresa_aberto         INT GENERATED ALWAYS AS (IF(status = 'aberto', id_empresa, NULL)) STORED,
     UNIQUE KEY uk_caixa_empresa_aberto (id_empresa_aberto),
     KEY idx_caixa_empresa_data (id_empresa, dt_abertura),
-    FOREIGN KEY (id_empresa)                REFERENCES EMPRESA(id_empresa) ON DELETE CASCADE,
+    -- Sem ON DELETE CASCADE: o MySQL recusa ação referencial em cascata sobre
+    -- a coluna-base de uma coluna gerada STORED, e id_empresa é base de
+    -- id_empresa_aberto. O RESTRICT resultante protege o histórico financeiro
+    -- — apagar o restaurante levaria os turnos fechados junto.
+    FOREIGN KEY (id_empresa)                REFERENCES EMPRESA(id_empresa),
     FOREIGN KEY (id_funcionario_abertura)   REFERENCES FUNCIONARIO(id_funcionario),
     FOREIGN KEY (id_funcionario_fechamento) REFERENCES FUNCIONARIO(id_funcionario)
 );

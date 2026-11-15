@@ -123,7 +123,12 @@ CREATE TABLE IF NOT EXISTS COMANDA (
     UNIQUE KEY uk_comanda_mesa_aberta (id_mesa_aberta),
     KEY idx_comanda_empresa_status (id_empresa, status),
     FOREIGN KEY (id_empresa)                REFERENCES EMPRESA(id_empresa) ON DELETE CASCADE,
-    FOREIGN KEY (id_mesa)                   REFERENCES MESA(id_mesa)       ON DELETE CASCADE,
+    -- Sem CASCADE: o MySQL recusa acao referencial em cascata sobre a
+    -- coluna-base de uma coluna gerada STORED, e id_mesa e base de
+    -- id_mesa_aberta. O RESTRICT e o certo de qualquer forma — apagar a mesa
+    -- levaria o historico de vendas dela junto, e por isso o app desativa
+    -- (MESA.ativo = 0) em vez de apagar.
+    FOREIGN KEY (id_mesa)                   REFERENCES MESA(id_mesa),
     FOREIGN KEY (id_funcionario_abertura)   REFERENCES FUNCIONARIO(id_funcionario),
     FOREIGN KEY (id_funcionario_fechamento) REFERENCES FUNCIONARIO(id_funcionario)
 );
@@ -223,7 +228,8 @@ CREATE TABLE IF NOT EXISTS CAIXA (
     id_empresa_aberto         INT GENERATED ALWAYS AS (IF(status = 'aberto', id_empresa, NULL)) STORED,
     UNIQUE KEY uk_caixa_empresa_aberto (id_empresa_aberto),
     KEY idx_caixa_empresa_data (id_empresa, dt_abertura),
-    FOREIGN KEY (id_empresa)                REFERENCES EMPRESA(id_empresa) ON DELETE CASCADE,
+    -- Sem CASCADE pela mesma razao: id_empresa e base de id_empresa_aberto.
+    FOREIGN KEY (id_empresa)                REFERENCES EMPRESA(id_empresa),
     FOREIGN KEY (id_funcionario_abertura)   REFERENCES FUNCIONARIO(id_funcionario),
     FOREIGN KEY (id_funcionario_fechamento) REFERENCES FUNCIONARIO(id_funcionario)
 );

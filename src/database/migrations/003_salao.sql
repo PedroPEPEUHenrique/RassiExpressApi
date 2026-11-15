@@ -60,7 +60,16 @@ CREATE TABLE IF NOT EXISTS COMANDA (
     UNIQUE KEY uk_comanda_mesa_aberta (id_mesa_aberta),
     KEY idx_comanda_empresa_status (id_empresa, status),
     FOREIGN KEY (id_empresa)              REFERENCES EMPRESA(id_empresa)         ON DELETE CASCADE,
-    FOREIGN KEY (id_mesa)                 REFERENCES MESA(id_mesa)               ON DELETE CASCADE,
+    -- Sem ON DELETE CASCADE, de propósito e por obrigação:
+    --
+    -- O MySQL recusa ação referencial em cascata sobre a coluna-base de uma
+    -- coluna gerada STORED, e id_mesa é base de id_mesa_aberta. A alternativa
+    -- seria abrir mão do índice que garante uma comanda aberta por mesa.
+    --
+    -- O RESTRICT resultante é o comportamento certo de qualquer forma: apagar
+    -- uma mesa levaria junto todo o histórico de vendas dela. Por isso o app
+    -- nunca apaga mesa — desativa (MESA.ativo = 0), preservando as comandas.
+    FOREIGN KEY (id_mesa)                 REFERENCES MESA(id_mesa),
     FOREIGN KEY (id_funcionario_abertura) REFERENCES FUNCIONARIO(id_funcionario),
     FOREIGN KEY (id_funcionario_fechamento) REFERENCES FUNCIONARIO(id_funcionario)
 );
