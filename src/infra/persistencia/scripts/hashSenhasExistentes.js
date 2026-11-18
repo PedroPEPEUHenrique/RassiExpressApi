@@ -10,12 +10,12 @@
  */
 import 'dotenv/config';
 import bcrypt from 'bcryptjs';
-import { execute, pool } from './mysql.js';
+import { executar, pool } from '../mysql.js';
 
 const SALT_ROUNDS = 10;
 
 async function migrarSenhas() {
-    const usuarios = await execute('SELECT id_usuario, email, senha FROM USUARIO', []);
+    const usuarios = await executar('SELECT id_usuario, email, senha FROM USUARIO', []);
 
     let convertidos = 0;
     let ignorados = 0;
@@ -26,7 +26,7 @@ async function migrarSenhas() {
             continue;
         }
         const senhaHash = await bcrypt.hash(usuario.senha, SALT_ROUNDS);
-        await execute('UPDATE USUARIO SET senha = ? WHERE id_usuario = ?', [senhaHash, usuario.id_usuario]);
+        await executar('UPDATE USUARIO SET senha = ? WHERE id_usuario = ?', [senhaHash, usuario.id_usuario]);
         console.log(`  convertido: ${usuario.email}`);
         convertidos++;
     }

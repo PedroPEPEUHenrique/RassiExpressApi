@@ -10,7 +10,7 @@ services:
       - "3307:3306"
     volumes:
       - foodexpress_data:/var/lib/mysql
-      - ./src/database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+      - ./src/infra/persistencia/schema.sql:/docker-entrypoint-initdb.d/schema.sql
 
 volumes:
   foodexpress_data:

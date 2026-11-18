@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import bcrypt from 'bcryptjs';
-import { execute, pool } from './mysql.js';
+import { executar, pool } from '../mysql.js';
 
 // Dois restaurantes de propósito: é o que permite testar o isolamento entre
 // empresas. Logando como gestor do Cantina e pedindo /produtos/empresa/2, a
@@ -61,39 +61,39 @@ const equipe = [
 
 async function seed() {
   console.log('Limpando dados anteriores...');
-  await execute('SET FOREIGN_KEY_CHECKS = 0', []);
+  await executar('SET FOREIGN_KEY_CHECKS = 0', []);
   for (const t of ['MOVIMENTO_ESTOQUE', 'FICHA_TECNICA', 'INSUMO', 'MOVIMENTO_CAIXA', 'CAIXA',
                    'ITENS_PEDIDO', 'PEDIDO', 'COMANDA', 'MESA', 'USER_FAVORITO', 'DESTAQUE',
                    'BANNER', 'FUNCIONARIO', 'PRODUTO', 'PRODUTO_CATEGORIA', 'EMPRESA_CATEGORIA',
                    'EMPRESA', 'CATEGORIAS']) {
-    await execute(`DELETE FROM ${t}`, []);
-    await execute(`ALTER TABLE ${t} AUTO_INCREMENT = 1`, []);
+    await executar(`DELETE FROM ${t}`, []);
+    await executar(`ALTER TABLE ${t} AUTO_INCREMENT = 1`, []);
   }
-  await execute('SET FOREIGN_KEY_CHECKS = 1', []);
+  await executar('SET FOREIGN_KEY_CHECKS = 1', []);
 
   console.log('Inserindo restaurantes e cardápios...');
   const idsRestaurante = [];
   for (const r of restaurantes) {
-    const emp = await execute(
+    const emp = await executar(
       `INSERT INTO EMPRESA (nome, icone, taxa_entrega, endereco, bairro, cidade, estado, ativo, dt_cadastro)
        VALUES (?, NULL, 0, ?, ?, ?, ?, 1, NOW())`,
       [r.nome, r.endereco, r.bairro, r.cidade, r.estado],
-      'run'
+      'escrita'
     );
-    const idEmpresa = emp.lastID;
+    const idEmpresa = emp.id;
     idsRestaurante.push(idEmpresa);
 
     for (const cat of r.cardapio) {
-      const pc = await execute(
+      const pc = await executar(
         'INSERT INTO PRODUTO_CATEGORIA (id_empresa, categoria, ordem) VALUES (?, ?, ?)',
         [idEmpresa, cat.categoria, cat.ordem],
-        'run'
+        'escrita'
       );
       for (const p of cat.produtos) {
-        await execute(
+        await executar(
           `INSERT INTO PRODUTO (id_empresa, id_produto_categoria, nome, descricao, icone, valor, ativo)
            VALUES (?, ?, ?, ?, NULL, ?, 1)`,
-          [idEmpresa, pc.lastID, p.nome, p.descricao, p.valor]
+          [idEmpresa, pc.id, p.nome, p.descricao, p.valor]
         );
       }
     }
@@ -106,14 +106,14 @@ async function seed() {
   console.log('Inserindo equipe...');
   for (const f of equipe) {
     const senhaHash = await bcrypt.hash(f.senha, 10);
-    await execute(
+    await executar(
       `INSERT INTO USUARIO (nome, email, senha, cidade, estado, dt_cadastro)
        VALUES (?, ?, ?, 'Goiânia', 'GO', NOW())
        ON DUPLICATE KEY UPDATE nome = VALUES(nome), senha = VALUES(senha)`,
       [f.nome, f.email, senhaHash]
     );
-    const usuario = await execute('SELECT id_usuario FROM USUARIO WHERE email = ?', [f.email], 'get');
-    await execute(
+    const usuario = await executar('SELECT id_usuario FROM USUARIO WHERE email = ?', [f.email], 'um');
+    await executar(
       'INSERT INTO FUNCIONARIO (id_usuario, id_empresa, papel, ativo, dt_admissao) VALUES (?, ?, ?, 1, NOW())',
       [usuario.id_usuario, idsRestaurante[f.restaurante], f.papel]
     );
@@ -131,7 +131,7 @@ async function seed() {
   let totalMesas = 0;
   for (const grupo of salao) {
     for (const m of grupo.mesas) {
-      await execute(
+      await executar(
         'INSERT INTO MESA (id_empresa, numero, setor, capacidade, ativo) VALUES (?, ?, ?, ?, 1)',
         [idsRestaurante[grupo.restaurante], m.numero, m.setor, m.capacidade]
       );
@@ -141,7 +141,7 @@ async function seed() {
 
   // Um item em falta já de saída, para a diferença entre "fora do cardápio" e
   // "acabou hoje" ficar visível no primeiro login do gestor.
-  await execute(
+  await executar(
     'UPDATE PRODUTO SET disponivel = 0 WHERE nome = ? AND id_empresa = ?',
     ['Risoto de camarão', idsRestaurante[0]]
   );
