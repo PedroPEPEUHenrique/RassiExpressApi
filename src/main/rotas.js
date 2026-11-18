@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { adaptar } from '../infra/http/adaptador.js';
 import validate from '../infra/http/middleware/validate.js';
-import { autenticar, autorizarProprietario, autorizarPapel, escopoEmpresa } from '../infra/http/middleware/auth.js';
+import { autorizarProprietario, autorizarPapel, escopoEmpresa } from '../infra/http/middleware/auth.js';
 import { limiteEscrita, limiteLoginPorIp, limiteLoginPorEmail } from '../infra/http/middleware/rateLimit.js';
 import { resolverPeriodo } from '../infra/http/periodo.js';
 
@@ -28,7 +28,7 @@ import { criarInsumoSchema, atualizarInsumoSchema, movimentarSchema, salvarFicha
  *   escopoEmpresa  quando o id do restaurante vem pela URL, exige o do token
  *   autorizarPapel restringe a gestor, garçom ou cozinha
  */
-function montarRotas(casos) {
+function montarRotas({ casos, autenticar }) {
   const router = Router();
   const caso = (nome) => () => casos[nome];
 

@@ -11,8 +11,10 @@
     "dev": "node --watch src/main/servidor.js",
     "seed": "node src/infra/persistencia/scripts/seed.js",
     "hash-senhas": "node src/infra/persistencia/scripts/hashSenhasExistentes.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "arquitetura": "node scripts/verificar-arquitetura.mjs"
+    "test": "node --test \"test/**/*.test.js\"",
+    "arquitetura": "node scripts/verificar-arquitetura.mjs",
+    "test:unidade": "node --test \"test/{dominio,aplicacao}/**/*.test.js\"",
+    "test:observar": "node --test --watch \"test/**/*.test.js\""
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

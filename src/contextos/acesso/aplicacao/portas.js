@@ -39,4 +39,19 @@ class EmissorDeToken {
     ler(_token) { naoImplementado('EmissorDeToken.ler'); }
 }
 
-export { RepositorioUsuario, RepositorioFuncionario, RepositorioEmpresa, Hasher, EmissorDeToken };
+/**
+ * Porta consultada a CADA requisição autenticada.
+ *
+ * Separada do RepositorioFuncionario de propósito: é a única coisa que a
+ * borda HTTP precisa saber sobre vínculo, e mantê-la mínima deixa claro o que
+ * roda no caminho quente de toda requisição.
+ */
+class ConsultaDeVinculo {
+    /** O funcionário ainda trabalha aqui, e o restaurante ainda está ativo? */
+    async estaAtivo(_idFuncionario) { naoImplementado('ConsultaDeVinculo.estaAtivo'); }
+}
+
+export {
+    RepositorioUsuario, RepositorioFuncionario, RepositorioEmpresa,
+    Hasher, EmissorDeToken, ConsultaDeVinculo,
+};

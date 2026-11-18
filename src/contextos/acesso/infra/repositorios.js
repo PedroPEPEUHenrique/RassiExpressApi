@@ -1,5 +1,7 @@
 import { executar } from '../../../infra/persistencia/mysql.js';
-import { RepositorioUsuario, RepositorioFuncionario, RepositorioEmpresa } from '../aplicacao/portas.js';
+import {
+  RepositorioUsuario, RepositorioFuncionario, RepositorioEmpresa, ConsultaDeVinculo,
+} from '../aplicacao/portas.js';
 
 const COLUNAS_PUBLICAS =
   'id_usuario, nome, email, telefone, cep, endereco, numero, complemento, bairro, cidade, estado, dt_cadastro';
@@ -152,4 +154,26 @@ class RepositorioEmpresaMySQL extends RepositorioEmpresa {
   }
 }
 
-export { RepositorioUsuarioMySQL, RepositorioFuncionarioMySQL, RepositorioEmpresaMySQL };
+/**
+ * Consulta de vínculo para a autenticação.
+ *
+ * Mesma condição do login: funcionário ativo em restaurante ativo. Desligar a
+ * pessoa OU desativar o restaurante derruba a sessão na requisição seguinte,
+ * em vez de só impedir novos logins.
+ */
+class ConsultaDeVinculoMySQL extends ConsultaDeVinculo {
+  async estaAtivo(idFuncionario) {
+    const linha = await executar(`
+      SELECT 1 AS ok
+      FROM FUNCIONARIO f
+      INNER JOIN EMPRESA e ON e.id_empresa = f.id_empresa
+      WHERE f.id_funcionario = ? AND f.ativo = 1 AND e.ativo = 1
+    `, [idFuncionario], 'um');
+    return linha !== null;
+  }
+}
+
+export {
+  RepositorioUsuarioMySQL, RepositorioFuncionarioMySQL,
+  RepositorioEmpresaMySQL, ConsultaDeVinculoMySQL,
+};

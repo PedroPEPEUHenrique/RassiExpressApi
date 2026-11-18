@@ -1,8 +1,9 @@
 import { UnidadeDeTrabalhoMySQL } from '../infra/persistencia/mysql.js';
 import { HasherBcrypt, EmissorDeTokenJWT } from '../infra/seguranca/index.js';
 
-import { RepositorioUsuarioMySQL, RepositorioFuncionarioMySQL, RepositorioEmpresaMySQL }
+import { RepositorioUsuarioMySQL, RepositorioFuncionarioMySQL, RepositorioEmpresaMySQL, ConsultaDeVinculoMySQL }
   from '../contextos/acesso/infra/repositorios.js';
+import { criarAutenticar } from '../infra/http/middleware/auth.js';
 import { RepositorioMesaMySQL, RepositorioComandaMySQL, RepositorioRodadaMySQL }
   from '../contextos/salao/infra/repositorios.js';
 import { RepositorioProdutoMySQL, RepositorioCategoriaMySQL }
@@ -48,6 +49,7 @@ function montarContainer() {
   const repoUsuario = new RepositorioUsuarioMySQL();
   const repoFuncionario = new RepositorioFuncionarioMySQL();
   const repoEmpresa = new RepositorioEmpresaMySQL();
+  const consultaDeVinculo = new ConsultaDeVinculoMySQL();
   const repoMesa = new RepositorioMesaMySQL();
   const repoComanda = new RepositorioComandaMySQL();
   const repoRodada = new RepositorioRodadaMySQL();
@@ -149,7 +151,15 @@ function montarContainer() {
     avancarStatusDaRodada: new AvancarStatusDaRodada({ repoRodada, repoComanda, unidadeDeTrabalho }),
   };
 
-  return { ...casosAcesso, ...casosCardapio, ...casosSalao, ...casosFinanceiro, ...casosEstoque };
+  // O middleware de autenticação é montado aqui como qualquer outra peça:
+  // ele depende do leitor de token e da consulta de vínculo, e construí-lo
+  // no container é o que torna possível trocar os dois no teste.
+  const autenticar = criarAutenticar({ emissorDeToken, consultaDeVinculo });
+
+  return {
+    casos: { ...casosAcesso, ...casosCardapio, ...casosSalao, ...casosFinanceiro, ...casosEstoque },
+    autenticar,
+  };
 }
 
 export { montarContainer };
