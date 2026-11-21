@@ -12,8 +12,6 @@
 -- Aplicar em banco existente:
 --   docker exec -i foodexpress_db mysql -uroot -proot foodexpress < 003_salao.sql
 
-USE foodexpress;
-
 -- ---------------------------------------------------------------------------
 -- MESA
 --

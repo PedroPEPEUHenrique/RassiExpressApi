@@ -10,7 +10,16 @@
  * saem SEMPRE do token, nunca do corpo ou da query. É estrutural — um caso de
  * uso não tem como receber empresa pelo corpo mesmo que alguém tente mandar.
  */
-function adaptar(obterCaso, { status = 200, entrada } = {}) {
+/**
+ * @param {() => {executar: Function}} obterCaso
+ * @param {object} [opcoes]
+ * @param {number} [opcoes.status]      código de sucesso
+ * @param {Function} [opcoes.entrada]   monta a entrada a partir da requisição
+ * @param {Function} [opcoes.apresentar] converte o resultado para o contrato.
+ *        Sem ela o resultado sai como veio — só para os casos de uso que já
+ *        produzem a forma do contrato.
+ */
+function adaptar(obterCaso, { status = 200, entrada, apresentar } = {}) {
   return async (req, res, next) => {
     try {
       /**
@@ -39,7 +48,7 @@ function adaptar(obterCaso, { status = 200, entrada } = {}) {
       const resultado = await obterCaso().executar(dados);
 
       if (resultado === undefined) return res.status(204).send();
-      res.status(status).json(resultado);
+      res.status(status).json(apresentar ? apresentar(resultado) : resultado);
     } catch (erro) {
       next(erro);
     }

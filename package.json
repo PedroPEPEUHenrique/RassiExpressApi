@@ -14,7 +14,13 @@
     "test": "node --test \"test/**/*.test.js\"",
     "arquitetura": "node scripts/verificar-arquitetura.mjs",
     "test:unidade": "node --test \"test/{dominio,aplicacao}/**/*.test.js\"",
-    "test:observar": "node --test --watch \"test/**/*.test.js\""
+    "test:observar": "node --test --watch \"test/**/*.test.js\"",
+    "migrar": "node scripts/migrar.mjs",
+    "migrar:status": "node scripts/migrar.mjs status",
+    "migrar:verificar": "node scripts/verificar-migrations.mjs",
+    "migrar:adotar": "node scripts/migrar.mjs adotar",
+    "contrato:sync": "node scripts/contrato.mjs",
+    "contrato:verificar": "node scripts/contrato.mjs verificar"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

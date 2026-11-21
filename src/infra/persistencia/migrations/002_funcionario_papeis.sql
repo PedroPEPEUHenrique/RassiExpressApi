@@ -15,8 +15,6 @@
 -- (docker-entrypoint-initdb.d). Aplique esta migration em bancos existentes:
 --   docker exec -i foodexpress_db mysql -uroot -proot foodexpress < 002_funcionario_papeis.sql
 
-USE foodexpress;
-
 CREATE TABLE IF NOT EXISTS FUNCIONARIO (
     id_funcionario INT AUTO_INCREMENT PRIMARY KEY,
     id_usuario     INT NOT NULL,

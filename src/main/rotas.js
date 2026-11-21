@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { adaptar } from '../infra/http/adaptador.js';
+import ap from '../infra/http/apresentadores.js';
 import validate from '../infra/http/middleware/validate.js';
 import { autorizarProprietario, autorizarPapel, escopoEmpresa } from '../infra/http/middleware/auth.js';
 import { limiteEscrita, limiteLoginPorIp, limiteLoginPorEmail } from '../infra/http/middleware/rateLimit.js';
@@ -49,7 +50,7 @@ function montarRotas({ casos, autenticar }) {
   // ---- Pública: única porta de entrada ------------------------------------
   router.post('/usuarios/login',
     limiteLoginPorIp, limiteLoginPorEmail, validate(loginSchema),
-    adaptar(caso('autenticar')));
+    adaptar(caso('autenticar'), { apresentar: ap.login }));
 
   // ---- Salão: mapa de mesas -----------------------------------------------
   router.get('/mesas', autenticar, autorizarPapel(...EQUIPE), adaptar(caso('verSalao')));
@@ -60,73 +61,73 @@ function montarRotas({ casos, autenticar }) {
   router.delete('/mesas/:idMesa', ...ESCRITA, autorizarPapel('gestor'), adaptar(caso('desativarMesa')));
 
   // ---- Comandas: a conta da mesa ------------------------------------------
-  router.get('/comandas', autenticar, autorizarPapel(...EQUIPE), adaptar(caso('listarComandasAbertas')));
+  router.get('/comandas', autenticar, autorizarPapel(...EQUIPE), adaptar(caso('listarComandasAbertas'), { apresentar: ap.comandas }));
   router.post('/comandas', ...ESCRITA, autorizarPapel(...SALAO), validate(abrirComandaSchema),
-    adaptar(caso('abrirComanda'), { status: 201 }));
-  router.get('/comandas/:idComanda', autenticar, autorizarPapel(...EQUIPE), adaptar(caso('verComanda')));
+    adaptar(caso('abrirComanda'), { status: 201, apresentar: ap.comanda }));
+  router.get('/comandas/:idComanda', autenticar, autorizarPapel(...EQUIPE), adaptar(caso('verComanda'), { apresentar: ap.comanda }));
   router.patch('/comandas/:idComanda/fechar', ...ESCRITA, autorizarPapel(...SALAO), validate(fecharComandaSchema),
-    adaptar(caso('fecharComanda')));
+    adaptar(caso('fecharComanda'), { apresentar: ap.comanda }));
 
   // Lançar rodada é operação sobre a comanda, e a URL diz isso: a rodada não
   // existe fora de uma conta aberta.
   router.post('/comandas/:idComanda/pedidos', ...ESCRITA, autorizarPapel(...SALAO), validate(lancarRodadaSchema),
-    adaptar(caso('lancarRodada'), { status: 201 }));
+    adaptar(caso('lancarRodada'), { status: 201, apresentar: ap.rodada }));
 
   // ---- Cozinha ------------------------------------------------------------
-  router.get('/cozinha/fila', autenticar, autorizarPapel(...EQUIPE), adaptar(caso('verFilaDaCozinha')));
-  router.get('/pedidos/:idPedido', autenticar, autorizarPapel(...EQUIPE), adaptar(caso('verRodada')));
+  router.get('/cozinha/fila', autenticar, autorizarPapel(...EQUIPE), adaptar(caso('verFilaDaCozinha'), { apresentar: ap.rodadas }));
+  router.get('/pedidos/:idPedido', autenticar, autorizarPapel(...EQUIPE), adaptar(caso('verRodada'), { apresentar: ap.rodada }));
   // O garçom também avança status: é ele quem marca "entregue" na mesa.
   router.patch('/pedidos/:idPedido/status', ...ESCRITA, autorizarPapel(...EQUIPE), validate(atualizarStatusSchema),
-    adaptar(caso('avancarStatusDaRodada')));
+    adaptar(caso('avancarStatusDaRodada'), { apresentar: ap.rodada }));
 
   // ---- Equipe --------------------------------------------------------------
-  router.get('/funcionarios', autenticar, autorizarPapel('gestor'), adaptar(caso('listarEquipe')));
+  router.get('/funcionarios', autenticar, autorizarPapel('gestor'), adaptar(caso('listarEquipe'), { apresentar: (l) => l.map(ap.funcionario) }));
   router.post('/funcionarios', ...ESCRITA, autorizarPapel('gestor'), validate(criarFuncionarioSchema),
     adaptar(caso('admitirFuncionario'), { status: 201 }));
   router.patch('/funcionarios/:idFuncionario/papel', ...ESCRITA, autorizarPapel('gestor'), validate(alterarPapelSchema),
-    adaptar(caso('alterarPapel')));
+    adaptar(caso('alterarPapel'), { apresentar: ap.funcionario }));
   router.patch('/funcionarios/:idFuncionario/ativo', ...ESCRITA, autorizarPapel('gestor'), validate(alterarAtivoSchema),
-    adaptar(caso('alterarAcesso')));
+    adaptar(caso('alterarAcesso'), { apresentar: ap.funcionario }));
   router.get('/equipe/desempenho', autenticar, autorizarPapel('gestor'),
-    adaptar(caso('verDesempenhoDaEquipe'), { entrada: comPeriodo }));
+    adaptar(caso('verDesempenhoDaEquipe'), { entrada: comPeriodo, apresentar: ap.desempenho }));
 
   // ---- Caixa ---------------------------------------------------------------
   // Abrir e fechar é do gestor. Lançar movimento é liberado ao salão porque
   // sangria e suprimento acontecem durante o serviço, com o gestor longe do
   // aparelho; a cozinha fica de fora por não lidar com dinheiro.
-  router.get('/caixa', autenticar, autorizarPapel(...SALAO), adaptar(caso('verCaixaAtual')));
+  router.get('/caixa', autenticar, autorizarPapel(...SALAO), adaptar(caso('verCaixaAtual'), { apresentar: ap.caixa }));
   router.post('/caixa', ...ESCRITA, autorizarPapel('gestor'), validate(abrirCaixaSchema),
-    adaptar(caso('abrirCaixa'), { status: 201 }));
+    adaptar(caso('abrirCaixa'), { status: 201, apresentar: ap.caixa }));
   router.patch('/caixa/:idCaixa/fechar', ...ESCRITA, autorizarPapel('gestor'), validate(fecharCaixaSchema),
-    adaptar(caso('fecharCaixa')));
+    adaptar(caso('fecharCaixa'), { apresentar: ap.caixa }));
   router.post('/caixa/movimentos', ...ESCRITA, autorizarPapel(...SALAO), validate(lancarMovimentoSchema),
-    adaptar(caso('lancarMovimento'), { status: 201 }));
+    adaptar(caso('lancarMovimento'), { status: 201, apresentar: ap.caixa }));
   router.get('/caixa/historico', autenticar, autorizarPapel('gestor'),
-    adaptar(caso('verHistoricoDeCaixa'), { entrada: comPeriodo }));
-  router.get('/caixa/:idCaixa', autenticar, autorizarPapel('gestor'), adaptar(caso('verCaixa')));
+    adaptar(caso('verHistoricoDeCaixa'), { entrada: comPeriodo, apresentar: ap.caixas }));
+  router.get('/caixa/:idCaixa', autenticar, autorizarPapel('gestor'), adaptar(caso('verCaixa'), { apresentar: ap.caixa }));
 
   // ---- Relatórios ----------------------------------------------------------
   router.get('/relatorios/painel', autenticar, autorizarPapel('gestor'),
     adaptar(caso('verPainelDeRelatorios'), { entrada: comPeriodo }));
 
   // ---- Restaurante e perfil ------------------------------------------------
-  router.get('/empresas/:idEmpresa', autenticar, escopoEmpresa(), adaptar(caso('verRestaurante')));
+  router.get('/empresas/:idEmpresa', autenticar, escopoEmpresa(), adaptar(caso('verRestaurante'), { apresentar: ap.restaurante }));
   router.put('/empresas/:idEmpresa', ...ESCRITA, escopoEmpresa(), autorizarPapel('gestor'),
-    validate(atualizarEmpresaSchema), adaptar(caso('atualizarRestaurante')));
+    validate(atualizarEmpresaSchema), adaptar(caso('atualizarRestaurante'), { apresentar: ap.restaurante }));
 
   router.patch('/usuarios/senha', ...ESCRITA, validate(alterarSenhaSchema), adaptar(caso('alterarSenha')));
-  router.get('/usuarios/:idUsuario', autenticar, autorizarProprietario('idUsuario'), adaptar(caso('verPerfil')));
+  router.get('/usuarios/:idUsuario', autenticar, autorizarProprietario('idUsuario'), adaptar(caso('verPerfil'), { apresentar: ap.usuario }));
   router.put('/usuarios/:idUsuario', ...ESCRITA, autorizarProprietario('idUsuario'),
-    validate(atualizarUsuarioSchema), adaptar(caso('atualizarPerfil')));
+    validate(atualizarUsuarioSchema), adaptar(caso('atualizarPerfil'), { apresentar: ap.usuario }));
 
   // ---- Cardápio ------------------------------------------------------------
   // Leitura para toda a equipe (o garçom lança a partir dela); escrita só
   // para o gestor.
-  router.get('/cardapio', autenticar, autorizarPapel('gestor'), adaptar(caso('verCardapio')));
-  router.get('/produto-categorias/:idEmpresa', autenticar, escopoEmpresa(), adaptar(caso('listarCategorias')));
-  router.get('/produtos/empresa/:idEmpresa', autenticar, escopoEmpresa(), adaptar(caso('listarProdutosDisponiveis')));
-  router.get('/produtos/categoria/:idCategoria', autenticar, adaptar(caso('listarProdutosDaCategoria')));
-  router.get('/produtos/:idProduto', autenticar, adaptar(caso('verProduto')));
+  router.get('/cardapio', autenticar, autorizarPapel('gestor'), adaptar(caso('verCardapio'), { apresentar: ap.cardapio }));
+  router.get('/produto-categorias/:idEmpresa', autenticar, escopoEmpresa(), adaptar(caso('listarCategorias'), { apresentar: ap.categorias }));
+  router.get('/produtos/empresa/:idEmpresa', autenticar, escopoEmpresa(), adaptar(caso('listarProdutosDisponiveis'), { apresentar: ap.produtos }));
+  router.get('/produtos/categoria/:idCategoria', autenticar, adaptar(caso('listarProdutosDaCategoria'), { apresentar: ap.produtos }));
+  router.get('/produtos/:idProduto', autenticar, adaptar(caso('verProduto'), { apresentar: ap.produto }));
 
   // Marcar "acabou" é liberado para toda a equipe: quem descobre que o filé
   // acabou é quem está no salão ou na cozinha, e exigir o gestor significaria
@@ -158,7 +159,7 @@ function montarRotas({ casos, autenticar }) {
     adaptar(caso('atualizarInsumo')));
   router.delete('/insumos/:idInsumo', ...ESCRITA, autorizarPapel('gestor'), adaptar(caso('desativarInsumo')));
   router.get('/insumos/:idInsumo/movimentos', autenticar, autorizarPapel('gestor'),
-    adaptar(caso('verMovimentosDoInsumo')));
+    adaptar(caso('verMovimentosDoInsumo'), { apresentar: ap.movimentosEstoque }));
   router.post('/insumos/:idInsumo/movimentos', ...ESCRITA, autorizarPapel(...EQUIPE), validate(movimentarSchema),
     adaptar(caso('movimentarEstoque'), { status: 201 }));
 

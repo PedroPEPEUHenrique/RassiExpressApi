@@ -13,8 +13,6 @@
 -- Aplicar em banco existente:
 --   docker exec -i foodexpress_db mysql -uroot -proot foodexpress < 004_disponibilidade.sql
 
-USE foodexpress;
-
 ALTER TABLE PRODUTO
     ADD COLUMN disponivel TINYINT(1) NOT NULL DEFAULT 1 AFTER ativo;
 

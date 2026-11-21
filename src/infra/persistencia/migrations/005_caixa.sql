@@ -16,8 +16,6 @@
 -- Aplicar em banco existente:
 --   docker exec -i foodexpress_db mysql -uroot -proot foodexpress < 005_caixa.sql
 
-USE foodexpress;
-
 -- id_empresa_aberto repete o mesmo recurso de COMANDA.id_mesa_aberta: vale o
 -- id da empresa só enquanto o caixa está aberto e NULL depois. Como índice
 -- único aceita vários NULL, garante UM caixa aberto por restaurante sem

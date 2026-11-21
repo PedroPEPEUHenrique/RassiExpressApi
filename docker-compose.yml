@@ -9,8 +9,10 @@ services:
     ports:
       - "3307:3306"
     volumes:
+      # Sem schema.sql em docker-entrypoint-initdb.d: a estrutura vem de
+      # `npm run migrar`, que é a única fonte da verdade e roda tanto em
+      # banco novo quanto em existente.
       - foodexpress_data:/var/lib/mysql
-      - ./src/infra/persistencia/schema.sql:/docker-entrypoint-initdb.d/schema.sql
 
 volumes:
   foodexpress_data:

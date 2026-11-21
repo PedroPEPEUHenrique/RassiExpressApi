@@ -62,10 +62,10 @@ const equipe = [
 async function seed() {
   console.log('Limpando dados anteriores...');
   await executar('SET FOREIGN_KEY_CHECKS = 0', []);
+  // As tabelas de delivery saíram na migration 007.
   for (const t of ['MOVIMENTO_ESTOQUE', 'FICHA_TECNICA', 'INSUMO', 'MOVIMENTO_CAIXA', 'CAIXA',
-                   'ITENS_PEDIDO', 'PEDIDO', 'COMANDA', 'MESA', 'USER_FAVORITO', 'DESTAQUE',
-                   'BANNER', 'FUNCIONARIO', 'PRODUTO', 'PRODUTO_CATEGORIA', 'EMPRESA_CATEGORIA',
-                   'EMPRESA', 'CATEGORIAS']) {
+                   'ITENS_PEDIDO', 'PEDIDO', 'COMANDA', 'MESA', 'FUNCIONARIO',
+                   'PRODUTO', 'PRODUTO_CATEGORIA', 'EMPRESA']) {
     await executar(`DELETE FROM ${t}`, []);
     await executar(`ALTER TABLE ${t} AUTO_INCREMENT = 1`, []);
   }

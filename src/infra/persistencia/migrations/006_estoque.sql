@@ -9,8 +9,6 @@
 -- Aplicar em banco existente:
 --   docker exec -i foodexpress_db mysql -uroot -proot foodexpress < 006_estoque.sql
 
-USE foodexpress;
-
 -- qtd_atual é mantido como saldo corrente em vez de somado dos movimentos a
 -- cada consulta: a tela de estoque é lida muito mais vezes do que escrita, e
 -- somar o histórico inteiro a cada abertura ficaria mais lento a cada mês.
