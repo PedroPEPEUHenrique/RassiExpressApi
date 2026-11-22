@@ -20,7 +20,14 @@ import { dirname } from 'node:path';
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 const ORIGEM = `${AQUI}/../contrato/api.ts`;
-const DESTINO = `${AQUI}/../../lanche-expresso/src/types/contrato.ts`;
+
+/**
+ * Onde o app está. O padrão é o irmão `../lanche-expresso`, que é como as
+ * duas pastas ficam na máquina de quem desenvolve; `APP_DIR` existe para o
+ * CI, onde os dois repositórios são clonados em caminhos que ele escolhe.
+ */
+const APP = process.env.APP_DIR ?? `${AQUI}/../../lanche-expresso`;
+const DESTINO = `${APP}/src/types/contrato.ts`;
 
 const AVISO = `// ============================================================================
 // ARQUIVO GERADO — NÃO EDITE AQUI.
@@ -46,7 +53,11 @@ if (!existsSync(ORIGEM)) {
 
 if (comando === 'verificar') {
   if (!existsSync(DESTINO)) {
-    console.error('A cópia do contrato não existe no app. Rode npm run contrato:sync.');
+    // Diz o caminho: no CI, "não existe" quase sempre é o app clonado em
+    // outro lugar, não o contrato fora de sincronia.
+    console.error(`A cópia do contrato não existe em ${DESTINO}`);
+    console.error('  Se o app está noutro caminho, aponte APP_DIR para a raiz dele.');
+    console.error('  Se é só falta de sincronia, rode npm run contrato:sync.');
     process.exit(1);
   }
   const atual = readFileSync(DESTINO, 'utf8');

@@ -1,0 +1,129 @@
+# Verificação automática da API.
+#
+# Existe porque até aqui as quatro verificações do projeto só rodavam quando
+# alguém lembrava de rodá-las. São elas que sustentam o resto: a suíte de
+# testes, a regra de dependência da arquitetura, o contrato compartilhado com
+# o app e a reprodutibilidade das migrations.
+#
+# O MySQL sobe como serviço de propósito. Sem banco, os testes de integração
+# se pulam sozinhos — o que é o comportamento certo na máquina de quem
+# desenvolve e o errado aqui, onde "pulou" viraria "passou" em silêncio.
+# O passo "nenhum teste pode ter sido pulado" é o que garante isso.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  # Um push novo no mesmo branch cancela a execução anterior: a resposta que
+  # interessa é a do último commit.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: foodexpress
+        ports:
+          - 3306:3306
+        # Sem o health check o job começa antes de o MySQL aceitar conexão e
+        # falha por corrida, não por código.
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: foodexpress
+      JWT_SECRET: segredo-de-ci-nao-usar-em-producao
+      JWT_EXPIRES_IN: 7d
+      # O teste de CORS exige que uma origem conhecida passe e uma
+      # desconhecida seja barrada; com a lista vazia não haveria o que testar.
+      CORS_ORIGINS: http://localhost:8081
+      TRUST_PROXY: 0
+      APP_DIR: ${{ github.workspace }}/lanche-expresso
+
+    steps:
+      - name: Clonar a API
+        uses: actions/checkout@v4
+        with:
+          path: RassiExpressApi
+
+      # O contrato é copiado para o app, e `contrato:verificar` compara as
+      # duas pontas. Sem o app clonado aqui, essa verificação não existe.
+      # Repositório privado: crie um PAT com acesso de leitura a ele e
+      # guarde-o no secret CI_APP_TOKEN. Sendo público, o token padrão basta.
+      - name: Clonar o app
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/lanche-expresso
+          path: lanche-expresso
+          token: ${{ secrets.CI_APP_TOKEN || github.token }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 25
+          cache: npm
+          cache-dependency-path: RassiExpressApi/package-lock.json
+
+      - name: Instalar dependências
+        working-directory: RassiExpressApi
+        run: npm ci
+
+      - name: Aplicar as migrations
+        working-directory: RassiExpressApi
+        run: npm run migrar
+
+      - name: Popular dados de teste
+        working-directory: RassiExpressApi
+        run: npm run seed
+
+      # Uma execução só, com duas condições de aprovação.
+      #
+      # A segunda existe porque a suíte de integração se pula sozinha quando
+      # não acha o MySQL — comportamento certo na máquina de quem desenvolve,
+      # e errado aqui: npm test sai com código 0 sem ter tocado o banco, e um
+      # verde que engana é pior que um vermelho. Foi verificado na prática:
+      # com o Docker parado, a suíte reporta 86 passes, 0 falhas, 6 pulados e
+      # exit 0.
+      #
+      # pipefail é obrigatório: sem ele o tee devolve 0 e a falha do teste se
+      # perde no caminho.
+      - name: Testes
+        working-directory: RassiExpressApi
+        shell: bash
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee saida.txt
+          pulados=$(grep -aoE "skipped [0-9]+" saida.txt | head -1 | grep -oE "[0-9]+")
+          if [ "${pulados:-0}" -ne 0 ]; then
+            echo "::error::$pulados teste(s) pulado(s) — o MySQL do CI não respondeu."
+            exit 1
+          fi
+          echo "Nenhum teste pulado: a integração rodou contra o banco."
+
+      - name: Regra de dependência da arquitetura
+        working-directory: RassiExpressApi
+        run: npm run arquitetura
+
+      - name: As migrations reproduzem o schema
+        working-directory: RassiExpressApi
+        run: npm run migrar:verificar
+
+      - name: Contrato sincronizado com o app
+        working-directory: RassiExpressApi
+        run: npm run contrato:verificar
