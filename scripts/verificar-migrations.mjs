@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { migrar, conectarEm, garantirBanco } from '../src/infra/persistencia/migrador.js';
+import { estruturaDe, comparar } from '../src/infra/persistencia/comparar.js';
 
 /**
  * Prova que a sequência de migrations reproduz o banco que está rodando.
@@ -18,63 +19,6 @@ import { migrar, conectarEm, garantirBanco } from '../src/infra/persistencia/mig
 
 const BANCO_REAL = process.env.DB_NAME || 'foodexpress';
 const BANCO_TESTE = `${BANCO_REAL}_verificacao`;
-
-/** Estrutura comparável: nome, tipo, nulidade, padrão e coluna gerada. */
-const SQL_ESTRUTURA = `
-  SELECT TABLE_NAME, COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE,
-         COALESCE(COLUMN_DEFAULT, '~') AS COLUMN_DEFAULT,
-         EXTRA, COALESCE(GENERATION_EXPRESSION, '') AS GENERATION_EXPRESSION
-  FROM information_schema.COLUMNS
-  WHERE TABLE_SCHEMA = ? AND TABLE_NAME <> 'schema_migrations'
-  ORDER BY TABLE_NAME, COLUMN_NAME
-`;
-
-/** Índices: é onde moram as garantias de unicidade que seguram o negócio. */
-const SQL_INDICES = `
-  SELECT TABLE_NAME, INDEX_NAME, NON_UNIQUE,
-         GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS COLUNAS
-  FROM information_schema.STATISTICS
-  WHERE TABLE_SCHEMA = ? AND TABLE_NAME <> 'schema_migrations'
-  GROUP BY TABLE_NAME, INDEX_NAME, NON_UNIQUE
-  ORDER BY TABLE_NAME, INDEX_NAME
-`;
-
-async function estruturaDe(nomeBanco) {
-  const conexao = await conectarEm(nomeBanco);
-  try {
-    const [colunas] = await conexao.query(SQL_ESTRUTURA, [nomeBanco]);
-    const [indices] = await conexao.query(SQL_INDICES, [nomeBanco]);
-    return {
-      colunas: new Map(colunas.map((c) => [
-        `${c.TABLE_NAME}.${c.COLUMN_NAME}`,
-        `${c.COLUMN_TYPE}|${c.IS_NULLABLE}|${c.COLUMN_DEFAULT}|${c.EXTRA}|${c.GENERATION_EXPRESSION}`,
-      ])),
-      indices: new Map(indices.map((i) => [
-        `${i.TABLE_NAME}.${i.INDEX_NAME}`,
-        `${i.NON_UNIQUE ? 'indice' : 'UNICO'}(${i.COLUNAS})`,
-      ])),
-    };
-  } finally {
-    await conexao.end();
-  }
-}
-
-function comparar(rotulo, real, reconstruido) {
-  const problemas = [];
-  for (const [chave, valorReal] of real) {
-    if (!reconstruido.has(chave)) {
-      problemas.push(`  ${chave}: existe no banco real, as migrations não criam`);
-    } else if (reconstruido.get(chave) !== valorReal) {
-      problemas.push(`  ${chave}:\n      real       ${valorReal}\n      migrations ${reconstruido.get(chave)}`);
-    }
-  }
-  for (const chave of reconstruido.keys()) {
-    if (!real.has(chave)) problemas.push(`  ${chave}: as migrations criam, não existe no banco real`);
-  }
-  console.log(`${problemas.length ? 'FALHOU' : 'PASSOU'}  ${rotulo}`);
-  problemas.forEach((p) => console.log(p));
-  return problemas.length;
-}
 
 async function apagar(nomeBanco) {
   const conexao = await conectarEm(process.env.DB_NAME || 'mysql').catch(() => null);
@@ -98,8 +42,9 @@ try {
   const real = await estruturaDe(BANCO_REAL);
   const reconstruido = await estruturaDe(BANCO_TESTE);
 
-  falhas += comparar('Colunas idênticas', real.colunas, reconstruido.colunas);
-  falhas += comparar('Índices idênticos', real.indices, reconstruido.indices);
+  const rotulos = { esperado: 'real', obtido: 'migrations' };
+  falhas += comparar('Colunas idênticas', real.colunas, reconstruido.colunas, rotulos);
+  falhas += comparar('Índices idênticos', real.indices, reconstruido.indices, rotulos);
 
   console.log(
     falhas

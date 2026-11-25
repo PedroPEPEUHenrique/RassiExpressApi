@@ -20,7 +20,12 @@
     "migrar:verificar": "node scripts/verificar-migrations.mjs",
     "migrar:adotar": "node scripts/migrar.mjs adotar",
     "contrato:sync": "node scripts/contrato.mjs",
-    "contrato:verificar": "node scripts/contrato.mjs verificar"
+    "contrato:verificar": "node scripts/contrato.mjs verificar",
+    "backup": "node scripts/backup.mjs",
+    "backup:listar": "node scripts/backup.mjs listar",
+    "backup:verificar": "node scripts/backup.mjs verificar",
+    "backup:restaurar": "node scripts/backup.mjs restaurar",
+    "backup:podar": "node scripts/backup.mjs podar"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

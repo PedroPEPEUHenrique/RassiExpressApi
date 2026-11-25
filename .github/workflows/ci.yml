@@ -124,6 +124,24 @@ jobs:
         working-directory: RassiExpressApi
         run: npm run migrar:verificar
 
+      # O ciclo inteiro de backup: dump, conferência de integridade,
+      # restauração num banco descartável e comparação com o original.
+      #
+      # `--agora` tira um backup na hora e exige igualdade exata, que é o que
+      # se pode exigir aqui — o banco do CI não recebe venda nenhuma entre o
+      # dump e a comparação.
+      #
+      # O mysqldump sai de dentro do próprio container de serviço do MySQL,
+      # em vez de instalar mysql-client no runner: menos um apt-get para
+      # falhar e nenhuma diferença de versão entre cliente e servidor.
+      - name: O backup restaura
+        working-directory: RassiExpressApi
+        env:
+          BACKUP_VIA_DOCKER: '1'
+          BACKUP_CONTAINER: ${{ job.services.mysql.id }}
+          BACKUP_DIR: ${{ runner.temp }}/backups
+        run: npm run backup:verificar -- --agora
+
       - name: Contrato sincronizado com o app
         working-directory: RassiExpressApi
         run: npm run contrato:verificar

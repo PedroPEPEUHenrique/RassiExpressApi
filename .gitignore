@@ -1,2 +1,9 @@
 node_modules/
 .env
+
+# Backups do banco.
+#
+# Nunca versionar: o dump carrega os hashes de senha da equipe e o histórico
+# de vendas inteiro. Num repositório remoto isso é vazamento, e apagar depois
+# não resolve — fica no histórico do git.
+backups/
